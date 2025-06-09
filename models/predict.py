@@ -1,14 +1,43 @@
-import joblib
+"""Utilities to run predictions using the trained pipeline."""
+
+from __future__ import annotations
+
 from pathlib import Path
-from datetime import datetime, timedelta
+
+import joblib
+import pandas as pd
+from pydantic import BaseModel, ValidationError
+
+MODEL_PATH = Path(__file__).resolve().parent / "model.joblib"
 
 
-def predict_demanda(producto_id: int, dias_adelante: int):
-    artifact = Path(f"models/artifacts/regresion_producto_{producto_id}.pkl")
-    if not artifact.exists():
-        return []
-    model = joblib.load(artifact)
-    start = datetime.now().toordinal()
-    X_future = [[start + i] for i in range(1, dias_adelante + 1)]
-    preds = model.predict(X_future)
-    return preds.tolist()
+class InputData(BaseModel):
+    age: float
+    sex: float
+    bmi: float
+    bp: float
+    s1: float
+    s2: float
+    s3: float
+    s4: float
+    s5: float
+    s6: float
+
+
+def predict(input_dict: dict, model_path: Path = MODEL_PATH) -> float:
+    """Validate input dictionary, load pipeline and return prediction."""
+    try:
+        data = InputData(**input_dict)
+    except ValidationError as e:
+        raise ValueError(str(e))
+
+    pipeline = joblib.load(model_path)
+    df = pd.DataFrame([data.dict()])
+    pred = pipeline.predict(df)[0]
+    return float(pred)
+
+
+if __name__ == "__main__":
+    import json, sys
+    features = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+    print(predict(features))

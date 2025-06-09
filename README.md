@@ -1,66 +1,50 @@
 # MicroAnalitycs
 
-This repository provides a minimal skeleton for the MicroAnalitycs project described in the planning document. It includes a FastAPI backend, a Streamlit frontend, simple machine learning models and placeholder chatbot integration.
+Proyecto de analítica predictiva que integra un scraper, un modelo de regresión
+de demanda y una API. El público objetivo son analistas de negocio que requieren
+predicciones rápidas. El éxito se mide por la precisión del modelo (R² ≥ 0.8),
+la rapidez del bot (<3 s) y la satisfacción del usuario.
 
-## Tecnologías
-
-### Base de Datos
-- SQLite (por defecto)
-- PostgreSQL (configurable via `DATABASE_URL`)
-- SQLAlchemy como ORM
-
-### Backend
-- FastAPI como framework web
-- Estructura modular:
-  - Modelos SQLAlchemy
-  - Schemas Pydantic 
-  - CRUD operations
-
-### Frontend
-- Streamlit para interfaz de usuario
-- Comunicación con backend via REST API
-
-### Machine Learning
-- scikit-learn para modelos predictivos
-- Regresión lineal para predicción de demanda
-
-## Estructura del Proyecto
-```
-backend/
-  ├── models/     # Modelos SQLAlchemy
-  ├── schemas/    # Schemas Pydantic
-  ├── crud/       # Operaciones CRUD
-  └── app.py      # Aplicación FastAPI
-
-frontend/
-  └── app.py      # Interfaz Streamlit
-
-models/
-  ├── train_regresion.py  # Entrenamiento
-  └── predict.py          # Predicciones
-
-chatbot/         # Integración chatbot
-scraping/        # Web scraping
-```
-
-## Setup
+## Instalación
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
 pip install -r requirements.txt
+# para el chatbot es necesario tener Ollama instalado y ejecutandose
 ```
 
-To run the backend:
+También es posible levantar la API y la base de datos con Docker:
 
 ```bash
-uvicorn backend.app:app --reload
+docker-compose up -d
 ```
 
-To run the frontend:
+## Entrenamiento del modelo
 
 ```bash
-streamlit run frontend/app.py
+python main.py --train
 ```
 
-A PostgreSQL database can be configured with the `DATABASE_URL` environment variable. By default an in-memory SQLite database is used.
+## Uso de predicciones
+
+```bash
+python main.py --predict '{"age":0.05, "sex":0.02, "bmi":0.03, "bp":0.04, "s1":0.05, "s2":0.06, "s3":0.07, "s4":0.08, "s5":0.09, "s6":0.1}'
+```
+
+## Ejecutar tests
+
+```bash
+pytest tests/
+```
+
+## Levantar la API manualmente
+
+```bash
+uvicorn backend.api:app --reload
+```
+
+## Frontend y chatbot (Ollama)
+
+```bash
+streamlit run frontend/webapp.py
+python chatbot/bot.py  # requiere instancia de Ollama corriendo en localhost
+```

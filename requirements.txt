@@ -6,3 +6,8 @@ streamlit
 pandas
 scikit-learn
 joblib
+requests
+beautifulsoup4
+ollama
+playwright
+matplotlib
