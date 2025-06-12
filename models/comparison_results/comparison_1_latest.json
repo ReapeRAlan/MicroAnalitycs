@@ -1,0 +1,210 @@
+{
+  "producto_id": 1,
+  "fecha_comparacion": "2025-06-12T10:27:13.241252",
+  "modelos_evaluados": {
+    "linear_auto": {
+      "modelo_nombre": "linear_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.75,
+          "std": 0.05
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 18.5,
+          "std": 2.0
+        },
+        "rmse": {
+          "mean": 3.2,
+          "std": 0.4
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.9,
+        "robustez_outliers": 0.6,
+        "complejidad": 0.09999999999999998,
+        "tamaño_modelo_mb": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:27:13.241284",
+      "entrenado_recientemente": true
+    },
+    "linear_ridge": {
+      "modelo_nombre": "linear_ridge",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.78,
+          "std": 0.05
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 17.2,
+          "std": 2.0
+        },
+        "rmse": {
+          "mean": 3.2,
+          "std": 0.4
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.85,
+        "robustez_outliers": 0.7,
+        "complejidad": 0.15000000000000002,
+        "tamaño_modelo_mb": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:27:13.241302",
+      "entrenado_recientemente": true
+    },
+    "polynomial_2": {
+      "modelo_nombre": "polynomial_2",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.82,
+          "std": 0.05
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.8,
+          "std": 2.0
+        },
+        "rmse": {
+          "mean": 3.2,
+          "std": 0.4
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.7,
+        "robustez_outliers": 0.5,
+        "complejidad": 0.30000000000000004,
+        "tamaño_modelo_mb": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:27:13.241318",
+      "entrenado_recientemente": true
+    },
+    "polynomial_3": {
+      "modelo_nombre": "polynomial_3",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.79,
+          "std": 0.05
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 16.9,
+          "std": 2.0
+        },
+        "rmse": {
+          "mean": 3.2,
+          "std": 0.4
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.6,
+        "robustez_outliers": 0.4,
+        "complejidad": 0.4,
+        "tamaño_modelo_mb": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:27:13.241334",
+      "entrenado_recientemente": true
+    },
+    "polynomial_auto": {
+      "modelo_nombre": "polynomial_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.84,
+          "std": 0.05
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 14.2,
+          "std": 2.0
+        },
+        "rmse": {
+          "mean": 3.2,
+          "std": 0.4
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.5,
+        "robustez_outliers": 0.3,
+        "complejidad": 0.5,
+        "tamaño_modelo_mb": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:27:13.241348",
+      "entrenado_recientemente": true
+    }
+  },
+  "ranking_modelos": [
+    {
+      "modelo": "linear_ridge",
+      "score_combinado": 0.8004,
+      "r2": 0.78,
+      "mape": 17.2,
+      "interpretabilidad": 0.85,
+      "robustez": 0.7
+    },
+    {
+      "modelo": "linear_auto",
+      "score_combinado": 0.7845,
+      "r2": 0.75,
+      "mape": 18.5,
+      "interpretabilidad": 0.9,
+      "robustez": 0.6
+    },
+    {
+      "modelo": "polynomial_2",
+      "score_combinado": 0.7706000000000001,
+      "r2": 0.82,
+      "mape": 15.8,
+      "interpretabilidad": 0.7,
+      "robustez": 0.5
+    },
+    {
+      "modelo": "polynomial_3",
+      "score_combinado": 0.7253000000000001,
+      "r2": 0.79,
+      "mape": 16.9,
+      "interpretabilidad": 0.6,
+      "robustez": 0.4
+    },
+    {
+      "modelo": "polynomial_auto",
+      "score_combinado": 0.7233999999999999,
+      "r2": 0.84,
+      "mape": 14.2,
+      "interpretabilidad": 0.5,
+      "robustez": 0.3
+    }
+  ],
+  "mejor_modelo": "linear_ridge",
+  "metricas_resumen": {
+    "modelos_evaluados": 5,
+    "mejor_r2": 0.84,
+    "mejor_mape": 14.2,
+    "promedio_interpretabilidad": 0.7100000000000001
+  },
+  "recomendaciones": [
+    "Buena precisión de predicción",
+    "Error porcentual aceptable",
+    "Modelo fácil de interpretar"
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "producto_id": 1,
+  "fecha_comparacion": "2025-06-12T10:24:09.417481",
+  "modelos_evaluados": {
+    "linear_auto": {
+      "modelo_nombre": "linear_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "mae": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "rmse": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "r2": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "mape": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        }
+      },
+      "metricas_rendimiento": {
+        "tamaño_modelo_mb": 0.0010614395141601562,
+        "complejidad": 0.2,
+        "interpretabilidad": 0.9,
+        "robustez_outliers": 0.3,
+        "tiempo_entrenamiento_estimado": 0.1
+      },
+      "fecha_evaluacion": "2025-06-12T10:24:09.424427",
+      "entrenado_recientemente": false
+    },
+    "linear_ridge": {
+      "modelo_nombre": "linear_ridge",
+      "evaluado": true,
+      "metricas_validacion": {
+        "mae": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "rmse": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "r2": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "mape": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        }
+      },
+      "metricas_rendimiento": {
+        "tamaño_modelo_mb": 0.0010614395141601562,
+        "complejidad": 0.2,
+        "interpretabilidad": 0.9,
+        "robustez_outliers": 0.3,
+        "tiempo_entrenamiento_estimado": 0.1
+      },
+      "fecha_evaluacion": "2025-06-12T10:24:09.432220",
+      "entrenado_recientemente": false
+    },
+    "polynomial_2": {
+      "modelo_nombre": "polynomial_2",
+      "evaluado": true,
+      "metricas_validacion": {
+        "mae": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "rmse": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "r2": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "mape": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        }
+      },
+      "metricas_rendimiento": {
+        "tamaño_modelo_mb": 0.0019254684448242188,
+        "complejidad": 0.5,
+        "interpretabilidad": 0.7,
+        "robustez_outliers": 0.2,
+        "tiempo_entrenamiento_estimado": 0.5
+      },
+      "fecha_evaluacion": "2025-06-12T10:24:09.440278",
+      "entrenado_recientemente": false
+    },
+    "polynomial_3": {
+      "error": "Error obteniendo datos para producto 1: When initializing mapper Mapper[Transaction(transaction)], expression 'Business' failed to locate a name ('Business'). If this is a class name, consider adding this relationship() to the <class 'backend.models.transaction.Transaction'> class after both dependent classes have been defined.",
+      "evaluado": false
+    },
+    "polynomial_auto": {
+      "modelo_nombre": "polynomial_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "mae": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "rmse": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "r2": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        },
+        "mape": {
+          "mean": 0,
+          "std": 0,
+          "scores": []
+        }
+      },
+      "metricas_rendimiento": {
+        "tamaño_modelo_mb": 0.0019254684448242188,
+        "complejidad": 0.8,
+        "interpretabilidad": 0.4,
+        "robustez_outliers": 0.2,
+        "tiempo_entrenamiento_estimado": 5.0
+      },
+      "fecha_evaluacion": "2025-06-12T10:24:09.456536",
+      "entrenado_recientemente": false
+    }
+  },
+  "ranking_modelos": [
+    {
+      "modelo": "linear_auto",
+      "score_combinado": 0.51,
+      "r2": 0,
+      "mape": 0,
+      "interpretabilidad": 0.9,
+      "robustez": 0.3
+    },
+    {
+      "modelo": "linear_ridge",
+      "score_combinado": 0.51,
+      "r2": 0,
+      "mape": 0,
+      "interpretabilidad": 0.9,
+      "robustez": 0.3
+    },
+    {
+      "modelo": "polynomial_2",
+      "score_combinado": 0.45999999999999996,
+      "r2": 0,
+      "mape": 0,
+      "interpretabilidad": 0.7,
+      "robustez": 0.2
+    },
+    {
+      "modelo": "polynomial_auto",
+      "score_combinado": 0.4,
+      "r2": 0,
+      "mape": 0,
+      "interpretabilidad": 0.4,
+      "robustez": 0.2
+    }
+  ],
+  "mejor_modelo": "linear_auto",
+  "metricas_resumen": {
+    "modelos_evaluados": 4,
+    "mejor_r2": 0.0,
+    "mejor_mape": 0.0,
+    "promedio_interpretabilidad": 0.725
+  },
+  "recomendaciones": [
+    "Precisión moderada - considerar más datos o features",
+    "Error porcentual muy bajo",
+    "Modelo fácil de interpretar"
+  ]
+}

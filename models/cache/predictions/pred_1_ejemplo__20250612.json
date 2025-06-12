@@ -1,0 +1,8 @@
+{
+  "prediction_id": "pred_1_ejemplo__20250612",
+  "producto_id": 1,
+  "input_hash": "ejemplo_hash_12345",
+  "model_cache_id": "linear_1_20250612_102713_6eea1e98",
+  "timestamp": "2025-06-12T10:27:13.239312",
+  "prediction_type": "list"
+}
