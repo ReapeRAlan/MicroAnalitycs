@@ -1,17 +1,21 @@
 from pydantic import BaseModel
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Dict, Any
 
 class PredictionBase(BaseModel):
     product_id: int
-    modelo: str
-    resultado: float
-
+    dias_prediccion: int
+    
 class PredictionCreate(PredictionBase):
-    pass
+    business_id: int
+    user_id: int
 
-class PredictionRead(PredictionBase):
+class PredictionResponse(PredictionBase):
     id: int
-    fecha: Optional[str]
-
+    modelo: str
+    resultado: Dict[str, Any]
+    estado: str
+    fecha: datetime
+    
     class Config:
-        orm_mode = True
+        from_attributes = True
