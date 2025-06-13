@@ -10,13 +10,4 @@ app = FastAPI(title="MicroAnalitycs")
 
 app.include_router(business_routes.router)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-
 #importar model.predictor
