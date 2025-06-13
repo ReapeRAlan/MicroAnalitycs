@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from backend.base import Base
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
     business_id = Column(Integer, ForeignKey("business.id"))
@@ -15,4 +15,5 @@ class User(Base):
     fecha_creacion = Column(DateTime, default=func.now())
 
     business = relationship("Business", back_populates="usuarios")
-    chat_logs = relationship("ChatLog", back_populates="usuario")
+    # Add relationship here
+    chat_logs = relationship("ChatLog", back_populates="user")
