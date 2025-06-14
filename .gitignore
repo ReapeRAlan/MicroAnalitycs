@@ -47,3 +47,5 @@ desktop.ini
 *.db-journal
 *.sqlite
 *.sqlite3
+/.vs
+/frontend/.vs
