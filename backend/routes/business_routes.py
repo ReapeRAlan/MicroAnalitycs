@@ -17,18 +17,18 @@ from backend.schemas.business_schema import (
 from backend.base import get_db
 
 router = APIRouter(
-    prefix="/businesses",
-    tags=["businesses"]
+    prefix="/business",
+    tags=["business"]
 )
 
-#Ruta GET para obtener una lista de negocios
-@router.get("/businesses", response_model=List[BusinessRead])
+# Obtener todos los negocios
+@router.get("/", response_model=List[BusinessRead])
 def read_businesses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     businesses = get_businesses(db, skip=skip, limit=limit)
     return businesses
 
 #Ruta GET para obtener un negocio por su ID
-@router.get("/business/{business_id}", response_model=BusinessRead)
+@router.get("/{business_id}", response_model=BusinessRead)
 def read_business(business_id: int, db: Session = Depends(get_db)):
     business = get_business(db, business_id=business_id)
     if business is None:
@@ -36,7 +36,7 @@ def read_business(business_id: int, db: Session = Depends(get_db)):
     return business
 
 #Ruta POST para crear un nuevo negocio
-@router.post("/business/new", response_model=BusinessRead)
+@router.post("/", response_model=BusinessRead)
 def create_new_business(business: BusinessCreate, db: Session = Depends(get_db)):
     return create_business(db=db, business=business)
 
