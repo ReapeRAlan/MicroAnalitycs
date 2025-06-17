@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import date, datetime
 
 class UserBase(BaseModel):
     nombre: Optional[str] = None
@@ -12,7 +13,10 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     id: int
-    fecha_creacion: Optional[str]
+    fecha_creacion: datetime
 
     class Config:
         orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }

@@ -6,16 +6,10 @@ from backend.routes import business_routes
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="MicroAnalitycs")
+app = FastAPI(title="MicroAnalitycs", debug=True)
 
 app.include_router(
     business_routes.router,
     prefix="/api",
     tags=["business"]
 )
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-#importar model.predictor

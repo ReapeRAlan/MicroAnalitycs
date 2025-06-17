@@ -42,33 +42,33 @@ def create_new_business(business: BusinessCreate, db: Session = Depends(get_db))
 
 
 # Rutas PUT para actualización completa un negocio existente
-@router.put("/business/update/{business_id}", response_model=BusinessRead)
+@router.put("/{business_id}", response_model=BusinessRead)
 def update_existing_business(
     business_id: int, 
     business: BusinessUpdate, 
     db: Session = Depends(get_db)
 ):
-    db_business = update_business(db=db, business_id=business_id, business=business)
-    if db_business is None:
+    updated_business = update_business(db, business_id=business_id, business=business)
+    if updated_business is None:
         raise HTTPException(status_code=404, detail="Business not found")
-    return db_business
+    return updated_business
 
 # Ruta PATCH para actualización parcial de un negocio existente
-@router.patch("/business/partial/update/{business_id}", response_model=BusinessRead)
+@router.patch("/{business_id}", response_model=BusinessRead)
 def partial_update_business(
     business_id: int, 
     business: BusinessUpdate, 
     db: Session = Depends(get_db)
 ):
-    db_business = update_business(db=db, business_id=business_id, business=business)
-    if db_business is None:
+    updated_business = update_business(db, business_id=business_id, business=business)
+    if updated_business is None:
         raise HTTPException(status_code=404, detail="Business not found")
-    return db_business
+    return updated_business
 
 
-@router.delete("/business/delete/{business_id}", response_model=BusinessRead)
-def delete_existing_business(business_id: int, db: Session = Depends(get_db)):
-    db_business = delete_business(db=db, business_id=business_id)
-    if db_business is None:
+@router.delete("/{business_id}", response_model=BusinessRead)
+def remove_business(business_id: int, db: Session = Depends(get_db)):
+    deleted_business = delete_business(db, business_id=business_id)
+    if deleted_business is None:
         raise HTTPException(status_code=404, detail="Business not found")
-    return db_business
+    return deleted_business

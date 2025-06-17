@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 class InventoryBase(BaseModel):
     product_id: int
@@ -10,7 +11,10 @@ class InventoryCreate(InventoryBase):
 
 class InventoryRead(InventoryBase):
     id: int
-    ultimo_ingreso: Optional[str]
+    ultimo_ingreso: datetime
 
     class Config:
         orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
