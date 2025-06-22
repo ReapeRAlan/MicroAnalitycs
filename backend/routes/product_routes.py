@@ -94,7 +94,7 @@ def partial_update_product(
     return updated_product
 
 # Ruta DELETE para eliminar un producto por su ID
-@router.delete("/{product_id}", response_model=ProductRead)
+@router.delete("/delete/{product_id}", response_model=ProductRead)
 def remove_product(product_id: int, db: Session = Depends(get_db)):
 
     deleted_product = delete_product(db, product_id=product_id)
