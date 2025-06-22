@@ -4,7 +4,7 @@ from backend.schemas.category_schema import (
     CategoryCreate, 
     CategoryUpdate, 
     CategoryRead,
-    CategoryWithProducts
+    
 )
 
 #Obtiene una categoría por ID
@@ -12,11 +12,7 @@ def get_category(db: Session, category_id: int) -> CategoryRead | None:
     db_category = db.query(Category).filter(Category.id == category_id).first()
     return CategoryRead.model_validate(db_category) if db_category else None
 
-#Obtiene una categoría incluyendo sus productos relacionados
-def get_category_with_products(db: Session, category_id: int) -> CategoryWithProducts | None:
-    db_category = db.query(Category).filter(Category.id == category_id).first()
-    return CategoryWithProducts.model_validate(db_category) if db_category else None
-
+    
 #Lista todas las categorías con paginación
 def get_categories(db: Session, skip: int = 0, limit: int = 100) -> list[CategoryRead]:
     return [CategoryRead.model_validate(c) for c in db.query(Category).offset(skip).limit(limit).all()]

@@ -6,7 +6,6 @@ from backend.schemas.category_schema import (
     CategoryCreate,
     CategoryUpdate,
     CategoryRead,
-    CategoryWithProducts
 )
 from backend.crud.category_crud import (
     get_category,
@@ -14,7 +13,6 @@ from backend.crud.category_crud import (
     create_category,
     update_category,
     delete_category,
-    get_category_with_products
 )
 from backend.base import get_db
 
@@ -43,17 +41,7 @@ def read_category(category_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Category not found")
     return category
 
-
-#Ruta GET con categoría con lista completa de productos asociados
-@router.get("/{category_id}/products", response_model=CategoryWithProducts,
-           summary="Obtiene categoría con sus productos",
-           description="Recupera una categoría incluyendo todos sus productos relacionados")
-def read_category_with_products(category_id: int, db: Session = Depends(get_db)):
-    category = get_category_with_products(db, category_id=category_id)
-    if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return category
-
+    
 # Ruta POST para crear una nueva categoría
 @router.post("/new", response_model=CategoryRead,
             status_code=201,
