@@ -18,7 +18,7 @@ from backend.base import get_db
 
 router = APIRouter(
     prefix="/business",
-    tags=["business"]
+    tags=["Business"]
 )
 
 # Obtener todos los negocios
@@ -40,7 +40,7 @@ def read_business(business_id: int, db: Session = Depends(get_db)):
     return business
 
 #Ruta POST para crear un nuevo negocio
-@router.post("/", response_model=BusinessRead,
+@router.post("/new", response_model=BusinessRead,
     summary="Crear un nuevo negocio",
     description="Crea un nuevo negocio y lo agrega a la tabla business")
 def create_new_business(business: BusinessCreate, db: Session = Depends(get_db)):
@@ -48,7 +48,7 @@ def create_new_business(business: BusinessCreate, db: Session = Depends(get_db))
 
 
 # Rutas PUT para actualización completa un negocio existente
-@router.put("/{business_id}", response_model=BusinessRead,
+@router.put("/update/{business_id}", response_model=BusinessRead,
     summary="Actualizar un negocio",
     description="Actualiza todos los campos de un negocio existente")
 def update_existing_business(
@@ -62,7 +62,7 @@ def update_existing_business(
     return updated_business
 
 # Ruta PATCH para actualización parcial de un negocio existente
-@router.patch("/{business_id}", response_model=BusinessRead,
+@router.patch("/partial/update/{business_id}", response_model=BusinessRead,
     summary="Actualizar parcialmente un negocio",
     description="Actualiza solo los campos especificados de un negocio existente")
 def partial_update_business(
@@ -76,7 +76,8 @@ def partial_update_business(
     return updated_business
 
 
-@router.delete("/{business_id}", response_model=BusinessRead,
+# Ruta DELETE para eliminar un negocio por su ID
+@router.delete("/delete/{business_id}", response_model=BusinessRead,
     summary="Eliminar un negocio",
     description="Elimina un negocio existente y devuelve sus datos")
 def remove_business(business_id: int, db: Session = Depends(get_db)):
