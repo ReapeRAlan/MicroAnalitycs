@@ -6,7 +6,8 @@ from backend.routes import (
     category_routes, 
     product_routes, 
     supplier_routes, 
-    inventory_routes)
+    inventory_routes,
+    supplier_price_routes)
 
 Base.metadata.create_all(bind=engine)
 
@@ -41,4 +42,10 @@ app.include_router(
     inventory_routes.router,
     prefix="/api",  # Prefijo específico para categorías
     tags=["Inventory"]
+)
+
+app.include_router(
+    supplier_price_routes.router,
+    prefix="/api",  # Prefijo específico para categorías
+    tags=["Supplier Prices"]
 )
