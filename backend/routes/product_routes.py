@@ -51,7 +51,8 @@ def read_product(product_id: int, db: Session = Depends(get_db)):
               404: {"description": "Producto no encontrado"},
               200: {"description": "Detalles completos del producto con relaciones"}
           })
-def read_product_details(product_id: int, db: Session = Depends(get_db)):
+def read_product_details(product_id: int, db: Session = Depends(get_db),
+):
     product = get_product_with_relations(db, product_id=product_id)
     if not product:
         raise HTTPException(
@@ -61,13 +62,17 @@ def read_product_details(product_id: int, db: Session = Depends(get_db)):
     return product
 
 #Ruta POST para crear un nuevo negocio
-@router.post("/new", response_model=ProductRead)
+@router.post("/new", response_model=ProductRead,
+             summary="Crear un nuevo producto",
+            description="Crea un nuevo producto en la base de datos y retorna el producto creado"
+            )
 def create_new_product(product: ProductCreate, db: Session = Depends(get_db)):
     
     return create_product(db=db, product=product)
 
 # Rutas PUT para actualización completa un negocio existente
-@router.put("/update/{product_id}", response_model=ProductRead)
+@router.put("/update/{product_id}", response_model=ProductRead,
+            summary="Actualizar un negocio existente",description="Actualiza todos los campos de un negocio existente, reemplazando los valores actuales")
 def update_existing_product(
     product_id: int,
     product: ProductUpdate,
@@ -94,7 +99,9 @@ def partial_update_product(
     return updated_product
 
 # Ruta DELETE para eliminar un producto por su ID
-@router.delete("/delete/{product_id}", response_model=ProductRead)
+@router.delete("/delete/{product_id}", response_model=ProductRead,
+            summary="Eliminar un producto por su ID",
+            description="Elimina un producto de la base de datos por su ID y retorna el producto eliminado")
 def remove_product(product_id: int, db: Session = Depends(get_db)):
 
     deleted_product = delete_product(db, product_id=product_id)

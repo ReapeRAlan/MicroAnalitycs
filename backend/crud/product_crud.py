@@ -8,7 +8,7 @@ from backend.schemas.product_schema import (
     ProductWithRelations
 )
 
-# Obtiene una lista de negocios con paginación
+# obtiene un producto por ID
 def get_product(db: Session, product_id: int) -> ProductRead | None:
     
     db_product = db.query(Product).filter(Product.id == product_id).first()
