@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from sqlalchemy.orm import Session
 from backend.base import SessionLocal, Base, engine
-from backend.routes import business_routes, category_routes, product_routes
+from backend.routes import business_routes, category_routes, product_routes, supplier_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,4 +24,10 @@ app.include_router(
     product_routes.router,
     prefix="/api",  # Prefijo específico para categorías
     tags=["Products"]
+)
+
+app.include_router(
+    supplier_routes.router,
+    prefix="/api",  # Prefijo específico para categorías
+    tags=["Suppliers"]
 )
