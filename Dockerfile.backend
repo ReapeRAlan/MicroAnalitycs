@@ -1,0 +1,44 @@
+# Dockerfile para el Backend FastAPI
+# ===================================
+
+FROM python:3.11-slim
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar archivos de dependencias
+COPY requirements.txt .
+COPY backend/seed_requirements.txt ./backend/
+
+# Instalar dependencias Python
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r backend/seed_requirements.txt
+
+# Instalar dependencias adicionales para producción
+RUN pip install uvicorn[standard] gunicorn
+
+# Copiar código fuente
+COPY . .
+
+# Crear directorio de logs
+RUN mkdir -p logs
+
+# Configurar base de datos
+RUN cd backend && python setup_database.py && python seed_data.py
+
+# Exponer puerto
+EXPOSE 8000
+
+# Variables de entorno
+ENV PYTHONPATH=/app
+ENV ENV=production
+
+# Comando de inicio
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

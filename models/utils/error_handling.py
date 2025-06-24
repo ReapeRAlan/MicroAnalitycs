@@ -102,6 +102,12 @@ def validate_producto_id(producto_id: int, *args, **kwargs) -> bool:
     """Valida que el ID del producto sea válido"""
     return isinstance(producto_id, int) and producto_id > 0
 
-def validate_prediction_input(dias_adelante: int, *args, **kwargs) -> bool:
+def validate_prediction_input(*args, **kwargs) -> bool:
     """Valida input para predicciones"""
+    # El primer argumento es self para métodos, dias_adelante está en kwargs
+    dias_adelante = kwargs.get('dias_adelante')
+    
+    if dias_adelante is None:
+        return False
+        
     return isinstance(dias_adelante, int) and 1 <= dias_adelante <= 365

@@ -54,3 +54,10 @@ tzdata==2025.2
 urllib3==2.4.0
 uvicorn==0.34.3
 watchdog==6.0.0
+
+# Nuevas dependencias para chatbot y Ollama
+aiohttp==3.10.11
+asyncio-mqtt==0.16.2
+python-multipart==0.0.20
+websockets==14.1
+httpx==0.28.1
