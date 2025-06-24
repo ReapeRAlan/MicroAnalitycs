@@ -2,22 +2,21 @@ import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import joblib
 from ..utils.data_processing import obtener_datos_enriquecidos
 
-class ModeloLineal:
-    """Modelo de regresión lineal mejorado para predicción de ventas."""
+class ModeloPolinomico:
+    """Modelo de regresión polinómica para predicción de ventas."""
     
-    def __init__(self, producto_id: int):
+    def __init__(self, producto_id: int, grado: int = 2):
         self.producto_id = producto_id
-        self.model_path = Path(f"models/artifacts/linear/producto_{producto_id}.pkl")
-        self.scaler_path = Path(f"models/artifacts/linear/scaler_{producto_id}.pkl")
-        self.model = None
-        self.scaler = StandardScaler()
+        self.grado = grado
+        self.model_path = Path(f"models/artifacts/polynomial/producto_{producto_id}_grado_{grado}.pkl")
         
         # Features para el modelo
         self.features_base = [
@@ -30,16 +29,15 @@ class ModeloLineal:
             'margen', 'variacion_precio'
         ]
         
-    def train(self, usar_ridge=True, alpha=1.0) -> dict:
+    def train(self, alpha: float = 1.0) -> dict:
         """
-        Entrena el modelo con validación cruzada temporal.
+        Entrena el modelo polinómico con validación cruzada temporal.
         
         Args:
-            usar_ridge: Si True usa Ridge regression, sino Linear regression
             alpha: Parámetro de regularización para Ridge
             
         Returns:
-            dict: Métricas de rendimiento
+            dict: Métricas de rendimiento y coeficientes
         """
         # Obtener datos
         data = obtener_datos_enriquecidos(self.producto_id)
@@ -51,8 +49,12 @@ class ModeloLineal:
         X = data[self.features_base + self.features_calculados]
         y = data['cantidad_vendida']
         
-        # Escalar features
-        X_scaled = self.scaler.fit_transform(X)
+        # Crear pipeline con transformaciones
+        self.model = make_pipeline(
+            StandardScaler(),
+            PolynomialFeatures(degree=self.grado, include_bias=False),
+            Ridge(alpha=alpha)
+        )
         
         # Validación cruzada temporal
         tscv = TimeSeriesSplit(n_splits=5)
@@ -62,12 +64,9 @@ class ModeloLineal:
             'rmse_scores': []
         }
         
-        # Seleccionar modelo
-        self.model = Ridge(alpha=alpha) if usar_ridge else LinearRegression()
-        
         # Entrenamiento con validación cruzada
-        for train_idx, test_idx in tscv.split(X_scaled):
-            X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
+        for train_idx, test_idx in tscv.split(X):
+            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
             
             self.model.fit(X_train, y_train)
@@ -78,18 +77,22 @@ class ModeloLineal:
             metrics['rmse_scores'].append(np.sqrt(mean_squared_error(y_test, y_pred)))
         
         # Entrenar modelo final con todos los datos
-        self.model.fit(X_scaled, y)
+        self.model.fit(X, y)
         
-        # Guardar modelo y scaler
+        # Guardar modelo
         os.makedirs(self.model_path.parent, exist_ok=True)
         joblib.dump(self.model, self.model_path)
-        joblib.dump(self.scaler, self.scaler_path)
         
-        # Calcular importancia de features
+        # Obtener nombres de features polinómicos
+        poly = self.model.named_steps['polynomialfeatures']
+        feature_names = self._get_feature_names(poly, X.columns)
+        
+        # Obtener coeficientes del modelo
+        coef = self.model.named_steps['ridge'].coef_
         importancia = pd.DataFrame({
-            'feature': self.features_base + self.features_calculados,
-            'importancia': np.abs(self.model.coef_)
-        }).sort_values('importancia', ascending=False)
+            'feature': feature_names,
+            'coeficiente': coef
+        }).sort_values('coeficiente', key=abs, ascending=False)
         
         return {
             'metricas': {
@@ -97,5 +100,24 @@ class ModeloLineal:
                 'mae_medio': np.mean(metrics['mae_scores']),
                 'rmse_medio': np.mean(metrics['rmse_scores'])
             },
-            'importancia_features': importancia.to_dict('records')
+            'coeficientes': importancia.to_dict('records')
         }
+    
+    def _get_feature_names(self, poly: PolynomialFeatures, input_features: list) -> list:
+        """Genera nombres descriptivos para features polinómicos."""
+        powers = poly.powers_
+        feature_names = []
+        
+        for power in powers:
+            current = []
+            for feat, p in zip(input_features, power):
+                if p == 0:
+                    continue
+                elif p == 1:
+                    current.append(f"{feat}")
+                else:
+                    current.append(f"{feat}^{p}")
+            name = " * ".join(current) if current else "1"
+            feature_names.append(name)
+            
+        return feature_names
