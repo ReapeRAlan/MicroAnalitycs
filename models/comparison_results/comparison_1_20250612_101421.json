@@ -1,0 +1,122 @@
+{
+  "producto_id": 1,
+  "fecha_comparacion": "2025-06-12T10:14:21.315157",
+  "modelos_evaluados": {
+    "linear_auto": {
+      "modelo_nombre": "linear_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.8,
+          "std": 0.1
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.0,
+          "std": 2.0
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.8,
+        "robustez_outliers": 0.6
+      }
+    },
+    "linear_ridge": {
+      "modelo_nombre": "linear_ridge",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.8,
+          "std": 0.1
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.0,
+          "std": 2.0
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.8,
+        "robustez_outliers": 0.6
+      }
+    },
+    "polynomial_2": {
+      "modelo_nombre": "polynomial_2",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.8,
+          "std": 0.1
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.0,
+          "std": 2.0
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.8,
+        "robustez_outliers": 0.6
+      }
+    },
+    "polynomial_3": {
+      "modelo_nombre": "polynomial_3",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.8,
+          "std": 0.1
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.0,
+          "std": 2.0
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.8,
+        "robustez_outliers": 0.6
+      }
+    },
+    "polynomial_auto": {
+      "modelo_nombre": "polynomial_auto",
+      "evaluado": true,
+      "metricas_validacion": {
+        "r2": {
+          "mean": 0.8,
+          "std": 0.1
+        },
+        "mae": {
+          "mean": 2.5,
+          "std": 0.3
+        },
+        "mape": {
+          "mean": 15.0,
+          "std": 2.0
+        }
+      },
+      "metricas_rendimiento": {
+        "interpretabilidad": 0.8,
+        "robustez_outliers": 0.6
+      }
+    }
+  },
+  "ranking_modelos": [],
+  "mejor_modelo": null,
+  "metricas_resumen": {},
+  "recomendaciones": [
+    "Error en análisis: name 'interpretabilidad' is not defined"
+  ]
+}
