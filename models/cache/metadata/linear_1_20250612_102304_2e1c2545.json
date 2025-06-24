@@ -1,0 +1,18 @@
+{
+  "cache_id": "linear_1_20250612_102304_2e1c2545",
+  "producto_id": 1,
+  "model_type": "linear",
+  "version": "20250612_102304",
+  "timestamp": "2025-06-12T10:23:04.830941",
+  "size_bytes": 215,
+  "compression": "gzip",
+  "format": "joblib",
+  "features_utilizadas": [
+    "precio",
+    "stock",
+    "dia_semana",
+    "mes"
+  ],
+  "datos_entrenamiento": 180,
+  "validacion_cruzada": true
+}
