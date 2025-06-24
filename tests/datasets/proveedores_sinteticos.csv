@@ -1,0 +1,51 @@
+proveedor_id,nombre,pais,ciudad,contacto_email,telefono,calificacion,tiempo_entrega_dias,descuento_volumen,moneda,activo
+1,Talavera Group,Brasil,Burgos,pinedoadelia@valero.com,+34 713 021 564,3.3,17,0.129,CLP,True
+2,"Luna, Mir and Cañas",EEUU,Ourense,uabellan@otero.org,+34 886966190,3.6,10,0.035,USD,True
+3,Domínguez LLC,EEUU,Guadalajara,cabreranatanael@campillo.es,+34806 827 777,3.2,30,0.04,USD,True
+4,"Aguirre, Berenguer and Valentín",Perú,Toledo,fcasares@prats.com,+34 886 294 893,3.4,18,0.117,EUR,False
+5,Querol-Cortina,Brasil,Las Palmas,aureliano37@cobos-castejon.com,+34 985 63 59 49,3.7,22,0.144,CLP,True
+6,Rocamora Group,Argentina,Navarra,odominguez@jover.com,+34986017272,4.9,26,0.104,USD,False
+7,Agudo-Castrillo,Chile,Soria,maria-belen74@marin.com,+34800 97 79 00,4.5,19,0.052,CLP,True
+8,Mas PLC,Chile,Madrid,agarrido@sevillano.es,+34948 902 366,4.3,17,0.144,USD,True
+9,"Torrecilla, Morera and Cepeda",China,Guadalajara,herminio87@vara-agustin.com,+34975 800 392,3.8,24,0.106,CLP,True
+10,Anaya and Sons,Chile,Tarragona,eloisa15@herrera-pazos.com,+34 874 093 013,3.8,4,0.15,CLP,False
+11,"Andreu, Martin and Sandoval",Perú,Cantabria,maria-doloresfortuny@alcalde.com,+34873836051,3.5,10,0.098,CLP,True
+12,Crespo-Farré,Colombia,Málaga,inocencio70@parra.com,+34978 55 12 00,4.3,17,0.017,EUR,True
+13,"Narváez, Sáez and Carlos",Brasil,Cádiz,condevictoriano@peiro.es,+34 972 36 71 58,4.0,13,0.103,CLP,True
+14,"Quesada, Burgos and Madrigal",Perú,Lugo,flopez@llorens-nicolas.org,+34 984 96 82 20,3.4,30,0.098,EUR,True
+15,Godoy-Bejarano,Perú,Barcelona,agata32@belmonte.es,+34 887352382,3.7,27,0.145,EUR,True
+16,Haro Group,Brasil,Salamanca,yvillegas@pomares.com,+34 826962835,3.4,18,0.147,EUR,True
+17,"Echeverría, Roca and Toledo",Chile,Navarra,angelino85@amoros.es,+34945 98 46 13,4.4,1,0.046,USD,True
+18,Carballo-Manjón,Chile,La Coruña,gsantamaria@pi.es,+34867 928 879,5.0,19,0.147,CLP,True
+19,Moraleda-Mir,Brasil,Alicante,rodolfo59@arranz-tejada.com,+34 974 653 878,3.3,2,0.01,CLP,False
+20,"Fiol, Benito and Aramburu",Colombia,Alicante,serranoconcepcion@capdevila.com,+34883 31 52 76,4.9,13,0.06,USD,True
+21,"Serrano, Monreal and Zamorano",Colombia,Las Palmas,zzapata@prat.net,+34 948424803,4.6,22,0.127,EUR,True
+22,Alegria Ltd,Colombia,Pontevedra,florinamoran@esparza.net,+34923772099,4.6,8,0.039,EUR,True
+23,Taboada-Pizarro,Chile,Alicante,qamo@estrada.com,+34 727 815 681,4.8,2,0.006,EUR,True
+24,"Chacón, Galván and Piña",Colombia,Barcelona,jmaldonado@yanez.es,+34943 74 08 71,4.2,16,0.143,EUR,True
+25,Cortés Ltd,Perú,La Rioja,oliveraamor@acedo-losada.es,+34 678 819 608,4.3,17,0.136,USD,True
+26,Serna-Palomino,Chile,Ourense,iescamilla@becerra-gual.com,+34845166004,4.3,28,0.124,USD,True
+27,Mur-Oliveras,Argentina,Teruel,rubenplaza@riba-ferrandiz.com,+34 851 313 120,3.3,9,0.143,EUR,True
+28,"Otero, Moraleda and Montoya",Argentina,La Coruña,severopujol@granados-matas.com,+34 729 550 241,3.9,24,0.146,CLP,True
+29,Estevez-Nadal,Perú,Lugo,fabiana54@arcos.com,+34876 16 92 07,3.8,26,0.101,USD,True
+30,Núñez-Casado,EEUU,León,leonardo99@alamo.es,+34987 220 373,4.1,12,0.031,USD,True
+31,Osorio and Sons,Argentina,Córdoba,virginiavalcarcel@llobet-serra.net,+34 706 871 522,4.4,6,0.129,EUR,False
+32,Alsina Inc,Colombia,Málaga,fanny78@segura.com,+34 846 722 794,3.7,12,0.112,USD,True
+33,Romero-Camps,China,Barcelona,zaida63@saez.com,+34 846943865,3.1,22,0.122,EUR,True
+34,Vilalta Ltd,China,Córdoba,ortegalucas@lobo.com,+34822 63 77 99,4.5,26,0.064,USD,True
+35,"Benito, Córdoba and Villanueva",Colombia,Almería,srozas@rossello-sotelo.es,+34 877 326 840,4.4,23,0.126,CLP,True
+36,"Torres, Baena and Feijoo",Perú,León,yagoizquierdo@pinol.com,+34 821 612 471,4.2,9,0.0,USD,True
+37,Sarabia-Diez,Brasil,Alicante,rfrancisco@cuesta.com,+34 902 712 102,4.7,15,0.14,CLP,False
+38,Baños Group,Chile,La Rioja,natividadcarrion@dominguez-sala.org,+34925871883,3.1,23,0.141,USD,True
+39,Salazar and Sons,China,Santa Cruz de Tenerife,caballeroponcio@anaya-sacristan.com,+34961803418,5.0,5,0.054,CLP,True
+40,Navas-Corominas,Perú,Málaga,prudencia20@sacristan-borrell.es,+34 916 66 33 65,4.3,14,0.097,EUR,True
+41,"Giménez, Fabra and Perera",EEUU,Cádiz,eva-mariamontoya@salcedo-zapata.es,+34900274998,4.2,21,0.125,CLP,True
+42,Peral Inc,Perú,Salamanca,manolaflor@cerezo-barco.org,+34846 072 234,4.7,6,0.006,EUR,True
+43,"Benavent, Cepeda and Casanova",Argentina,Salamanca,perellotrinidad@nicolas.net,+34 848 875 257,4.8,16,0.002,USD,True
+44,Rueda LLC,China,La Rioja,suarezainoa@arce.es,+34 965 05 56 61,4.5,4,0.116,USD,True
+45,Exposito Ltd,Argentina,Barcelona,puertacesar@bernad-fonseca.es,+34926 56 02 78,3.2,23,0.068,USD,True
+46,"Aguilera, Terrón and Heras",Argentina,Málaga,duqueoctavia@chaves-sanchez.es,+34884 282 589,3.1,22,0.1,CLP,True
+47,Barrio-Castell,Brasil,Álava,cebriansanchez@chamorro-oliver.net,+34942 681 867,4.3,23,0.084,EUR,True
+48,"Pons, Conde and Mateo",Perú,León,iblazquez@andrade.com,+34746 187 115,4.2,16,0.011,EUR,True
+49,Juan and Sons,China,Córdoba,brunildacamino@batlle.es,+34 879879282,4.6,2,0.005,CLP,True
+50,"Roman, Hidalgo and Echevarría",EEUU,Badajoz,jose-franciscoboix@delgado.com,+34 826678167,3.3,21,0.047,CLP,True

@@ -396,3 +396,37 @@ class ModelPredictor:
     def clear_cache(self):
         """Limpia el caché para este producto"""
         model_cache.clear_cache(self.producto_id)
+
+
+# Función de conveniencia para compatibilidad con tests existentes
+@handle_errors(PredictionError, default_return=[])
+def predict_demanda(producto_id: int, dias_adelante: int) -> List[float]:
+    """
+    Función de conveniencia para predicción de demanda.
+    
+    Args:
+        producto_id: ID del producto
+        dias_adelante: Número de días a predecir
+        
+    Returns:
+        Lista de predicciones para los próximos días
+    """
+    try:
+        predictor = ModelPredictor(producto_id)
+        
+        # Intentar obtener predicción con mejor modelo disponible
+        result = predictor.predict_all_models(dias_adelante, use_cache=True)
+        
+        if result and 'best_prediction' in result and result['best_prediction']:
+            return result['best_prediction'].get('prediction', [])
+        
+        # Fallback: intentar con modelo específico
+        try:
+            return predictor.predict_single_model('linear', dias_adelante)
+        except:
+            # Si falla todo, retornar lista vacía
+            return []
+            
+    except Exception as e:
+        model_logger.log_error(e, f"predict_demanda producto {producto_id}")
+        return []

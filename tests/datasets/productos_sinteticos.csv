@@ -1,0 +1,48 @@
+producto_id,nombre,categoria,precio_base,costo_proveedor,marca,descripcion,peso_kg,dimensiones,fecha_lanzamiento,activo,margen
+1,Multi-lateral clear-thinking open architecture,Libros,727.86,510.17,"Agustí, Gonzalo and Gárate","Perspiciatis asperiores officia maxime cumque. Eaque saepe voluptatibus aliquam voluptates.
+Illo atque dolorum rerum fugit deleniti necessitatibus. Tenetur earum minima officiis nulla eos quos.",3.33,46x47x34,2023-07-17,True,0.299
+2,Realigned national access,Alimentación,655.9,443.47,Donoso-Salcedo,"Repellat pariatur eos omnis ducimus nobis.
+Officia quod sunt sint esse voluptatem harum. Doloribus sunt ut molestiae. Nisi cupiditate fuga veniam.",8.7,83x17x17,2024-10-13,True,0.324
+3,Profound client-driven array,Electrónicos,627.7,438.38,Madrigal-Saez,Est molestias aspernatur deleniti error minus. Quasi libero dolores placeat culpa vitae sint.,6.15,46x39x18,2024-03-04,True,0.302
+4,Integrated client-server matrices,Hogar,668.8,455.57,Navarrete-Sastre,"Corrupti velit ratione aperiam rem minima.
+Sequi delectus distinctio debitis rerum. Suscipit repellat non in quasi.
+Officiis quam quibusdam accusamus culpa. Illo aliquid minima est minus.",7.1,27x45x44,2023-11-13,True,0.319
+5,Synchronized bandwidth-monitored focus group,Libros,304.28,183.69,"Melero, Navarro and Ibáñez",Velit illum sapiente recusandae voluptate eligendi. Est soluta iste voluptatibus similique necessitatibus praesentium. Rerum corrupti explicabo voluptatum nulla voluptatem doloribus.,9.13,92x29x45,2023-08-19,True,0.396
+6,User-friendly real-time conglomeration,Electrónicos,81.3,64.65,"Pastor, Pardo and Bayón",Doloremque est quo alias facere inventore impedit. Doloribus ab consequuntur quia. Error mollitia quas ratione optio nesciunt unde.,5.37,56x92x34,2024-03-20,True,0.205
+7,Ameliorated global budgetary management,Alimentación,562.07,349.1,"Bayona, Hoz and Moliner",Ipsum ex atque asperiores expedita consequatur. Rerum mollitia quidem quasi. Culpa cupiditate vitae.,0.72,46x12x30,2024-01-06,True,0.379
+8,Ergonomic reciprocal software,Hogar,725.95,546.14,Olivé-Batlle,"Nobis magnam accusamus. Mollitia aut placeat dolor. Esse labore nam quod soluta rem et.
+Libero dolore mollitia voluptas facilis. Dignissimos nam placeat voluptatem.",9.94,25x45x33,2025-03-11,True,0.248
+9,Cloned national collaboration,Libros,38.61,29.03,"Sáez, Campillo and Vazquez",Nostrum laudantium impedit. Neque ducimus totam beatae nisi cumque eveniet. Alias quia adipisci explicabo blanditiis nam dicta.,1.7,12x35x30,2023-07-18,True,0.248
+10,Networked local circuit,Alimentación,871.15,547.56,Morillo PLC,"Laboriosam vitae voluptatum inventore consequatur. Quae fugiat totam cumque id.
+Placeat molestias expedita eligendi cum. Perspiciatis harum harum totam.",2.75,48x89x31,2024-01-26,True,0.371
+11,Switchable human-resource neural-net,Alimentación,50.8,36.06,"Pagès, Santamaria and Ortuño",Excepturi a delectus repellendus consequuntur. Veniam nulla voluptatibus eos. Nulla corporis laudantium quae odio pariatur tenetur.,7.73,16x54x13,2024-03-29,True,0.29
+12,Open-source human-resource migration,Deportes,399.21,272.79,Oliveras-Leiva,In ad quidem labore cum perspiciatis dolor quo. Accusantium nulla neque velit nulla repudiandae.,1.2,65x94x26,2025-05-06,True,0.317
+13,Grass-roots well-modulated middleware,Deportes,342.91,217.41,Cánovas-Crespi,Accusamus earum exercitationem tempora iusto. Neque omnis neque exercitationem asperiores debitis.,8.69,63x76x41,2025-04-07,True,0.366
+14,Diverse composite emulation,Electrónicos,720.11,499.07,Tudela Inc,Nihil possimus hic voluptatum. Laboriosam et dolore itaque impedit. Dolorum ipsum dolores dolores. Accusamus esse beatae aperiam laudantium ab.,1.78,71x96x16,2023-08-20,True,0.307
+15,Monitored value-added challenge,Hogar,899.87,637.28,Galvez-Agullo,"Fugiat iure repellat dolorem ipsum laudantium. Itaque assumenda maiores dolorum labore.
+Dolorum perspiciatis amet delectus praesentium. Quae culpa dolores quod.",5.66,12x86x8,2023-08-13,True,0.292
+16,Adaptive neutral capacity,Alimentación,651.45,402.64,Piñeiro-Pelayo,"Ipsum similique hic necessitatibus recusandae corporis saepe sunt.
+Distinctio voluptates quos reiciendis.
+Molestias molestias earum a. Eum consequatur quisquam consequatur porro. Ad veniam hic eum.",7.35,44x15x17,2024-02-02,True,0.382
+17,User-friendly context-sensitive database,Libros,530.37,385.47,"Canet, Alcázar and Agudo","Facilis error possimus. Aut fuga ipsum ipsa quis illo quibusdam.
+Itaque ullam voluptate praesentium fugiat pariatur doloribus. Eaque ipsam minus enim dolor excepturi cumque.",0.31,42x80x41,2024-04-22,True,0.273
+18,User-friendly coherent challenge,Libros,628.12,482.4,Baena-Torrents,Repudiandae odio ex. Aut itaque provident nobis dolores quaerat. Recusandae ullam ab dolorem voluptate dignissimos sint magnam.,3.52,100x23x47,2025-05-03,False,0.232
+19,Public-key local definition,Alimentación,717.22,557.32,Huguet LLC,Pariatur a dolor accusamus nostrum omnis. Dolore corporis sed corrupti amet sunt dolorem aut. Officiis saepe consectetur tempora nostrum molestiae quam illo.,2.88,72x50x24,2025-06-14,True,0.223
+20,Optimized 24/7 knowledgebase,Electrónicos,832.5,624.9,"Cepeda, Saldaña and Bilbao","Deserunt consequuntur reiciendis quidem officiis. Labore cum nostrum omnis recusandae.
+Neque minus consequuntur recusandae quo. Placeat atque soluta ad accusantium.",8.34,76x39x12,2024-06-09,True,0.249
+21,Configurable local customer loyalty,Ropa,529.46,347.56,Escamilla-Gordillo,Nostrum sequi doloremque repellendus voluptates nostrum quidem. Placeat non quisquam omnis voluptas. Nam laborum minima.,8.7,17x77x48,2025-01-11,True,0.344
+22,Synchronized fault-tolerant benchmark,Hogar,219.37,161.98,"Criado, Girón and Maza",Quo nesciunt cumque earum ea. Inventore et dignissimos ab libero. Repellat ipsam cumque porro.,5.11,67x47x30,2024-10-13,True,0.262
+23,Customizable context-sensitive middleware,Hogar,855.22,680.89,"Plana, Cerdá and Ordóñez","Expedita eum velit consequuntur.
+At molestias alias delectus nulla odio accusamus maxime. Atque tempora sapiente culpa. Sapiente reprehenderit ipsa dignissimos.",8.71,48x63x40,2025-03-15,True,0.204
+24,Adaptive didactic Graphical User Interface,Libros,753.69,515.28,"Fuster, Blanch and Ferrán",Tenetur suscipit explicabo et totam magnam. Quia quis atque inventore quos vero quibusdam cupiditate.,2.82,63x54x19,2024-06-28,True,0.316
+25,Function-based 3rdgeneration portal,Ropa,576.81,353.29,Vara-Benavides,"Itaque dolores neque tempora minus. Amet voluptatem consectetur aliquam facere.
+Voluptates incidunt repellat asperiores maxime quidem autem. Perferendis eaque ratione cumque.",5.56,66x93x27,2023-11-29,True,0.388
+26,Managed optimizing task-force,Electrónicos,728.98,479.97,"Aramburu, Cobos and Amaya","Perferendis alias rerum voluptatem eos. Aspernatur eius beatae.
+Hic voluptatum numquam.
+Eius quis assumenda asperiores nemo.",8.21,54x83x32,2025-05-04,True,0.342
+27,Virtual client-server paradigm,Alimentación,615.51,396.08,"Pozo, Busquets and Cuéllar",Molestiae recusandae soluta accusantium. Velit reprehenderit fugiat nemo.,6.9,84x13x19,2025-03-16,True,0.357
+28,Compatible 4thgeneration matrices,Libros,106.73,69.02,Tena and Sons,"Inventore sint officia. Aliquid in quam sint sit sapiente ut maxime.
+Laboriosam corrupti nostrum vitae. Recusandae totam magni. Consequatur sint iure ipsum.",1.36,62x30x29,2024-06-18,False,0.353
+29,De-engineered contextually-based monitoring,Alimentación,426.07,305.16,"Mas, Ledesma and Andres","Ad eos eligendi tenetur dicta. Sequi ab veniam harum corrupti culpa expedita.
+At veniam laudantium voluptatum iste necessitatibus ipsam. Officia recusandae consequuntur inventore nihil at explicabo.",8.23,99x85x49,2023-07-13,True,0.284
+30,Business-focused stable artificial intelligence,Deportes,757.67,514.91,Arranz-Torralba,Magni quibusdam eos exercitationem architecto pariatur. Sunt aliquam sunt temporibus molestiae mollitia.,9.6,91x45x5,2023-07-03,True,0.32
