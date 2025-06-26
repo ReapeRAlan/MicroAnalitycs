@@ -2,11 +2,14 @@
 import requests
 import pandas as pd
 import plotly.express as px
+import time
+import json
+from datetime import datetime
 
 # Configuración de la página
 st.set_page_config(page_title="MicroAnalytics POS", layout="wide", initial_sidebar_state="expanded")
 
-# Estilo personalizado con tonos de azul
+# Estilo personalizado con tonos de azul y formato de tabla
 st.markdown("""
     <style>
     .main {
@@ -18,8 +21,13 @@ st.markdown("""
         color: #1A2A44;
         border-radius: 8px;
         border: none;
-        padding: 10px 20px;
+        padding: 5px 10px;
         font-weight: bold;
+        vertical-align: middle;
+        margin: 0;
+        width: auto;
+        box-sizing: border-box;
+        display: inline-block;
     }
     .stButton>button:hover {
         background-color: #5DADE2;
@@ -53,7 +61,8 @@ st.markdown("""
     .main .stDataFrame th, .main .stDataFrame td {
         background-color: #1A2A44 !important;
         color: #E0E8F0 !important;
-        border: none !important;
+        border: 1px solid #3498DB !important;
+        padding: 8px;
     }
     .main .stDataFrame tr {
         background-color: #1A2A44 !important;
@@ -80,6 +89,35 @@ st.markdown("""
         border: none !important;
         color: #E0E8F0 !important;
     }
+    /* Estilo personalizado para la tabla de negocios en Seleccionar */
+    .business-table-container {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #3498DB;
+    }
+    .business-table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    .business-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .business-table th, .business-table td {
+        border: 1px solid #3498DB !important;
+        padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .business-table .button-cell {
+        padding: 0;
+        width: 34%;
+    }
+    .business-table .button-cell .button-wrapper {
+        display: inline-block;
+        width: auto;
+        vertical-align: middle;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -87,16 +125,10 @@ st.markdown("""
 API_BASE_URL = "http://localhost:8000/api"
 
 # Inicializar estado de la sesión
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
 if "business_id" not in st.session_state:
     st.session_state.business_id = None
 if "page" not in st.session_state:
-    st.session_state.page = "login"
-
-# Restaurar estado si recarga (temporal, mejor con cookies en producción)
-if st.session_state.logged_in and not st.session_state.page == "login":
-    st.session_state.page = "main" if st.session_state.business_id else "select_business"
+    st.session_state.page = "select_business"  # Inicio directo en selección de negocio
 
 # Funciones para negocios
 def get_businesses(skip=0, limit=100):
@@ -145,16 +177,16 @@ def delete_business(business_id):
         return None
 
 # Funciones para productos
-def get_products(skip=0, limit=100):
+def get_products(skip=0, limit=1000, force_refresh=False):
     try:
-        response = requests.get(f"{API_BASE_URL}/products/", params={"skip": skip, "limit": limit})
+        timestamp = datetime.now().timestamp()
+        response = requests.get(f"{API_BASE_URL}/products/?skip={skip}&limit={limit}&t={timestamp}")
         response.raise_for_status()
         products = response.json()
-        print(f"Productos obtenidos de la API: {products}")  # Depuración
-        # Filtrar por business_id si está seleccionado
+        print(f"Productos obtenidos de la API (force_refresh={force_refresh}, skip={skip}, limit={limit}, raw response: {json.dumps(products, indent=2)})")
         if st.session_state.business_id:
             filtered_products = [p for p in products if p.get("business_id") == st.session_state.business_id]
-            print(f"Productos filtrados por business_id {st.session_state.business_id}: {filtered_products}")  # Depuración
+            print(f"Productos filtrados por business_id {st.session_state.business_id}: {json.dumps(filtered_products, indent=2)}")
             return filtered_products
         return products
     except requests.exceptions.RequestException as e:
@@ -181,7 +213,8 @@ def create_product(nombre, descripcion, precio_base, category_id, business_id):
         })
         response.raise_for_status()
         new_product = response.json()
-        print(f"Producto creado: {new_product}")  # Depuración
+        print(f"Respuesta de creación de producto (raw): {json.dumps(new_product, indent=2)}")
+        print(f"Status Code: {response.status_code}")
         return new_product
     except requests.exceptions.RequestException as e:
         st.error(f"Error al crear producto: {str(e)}")
@@ -211,19 +244,6 @@ def delete_product(product_id):
     except requests.exceptions.RequestException as e:
         st.error(f"Error al eliminar producto: {str(e)}")
         return None
-
-# Pantalla de Login
-def show_login():
-    st.markdown("<h1 style='text-align: center; color: #2980B9;'>Bienvenido a MicroAnalytics</h1>", unsafe_allow_html=True)
-    correo = st.text_input("Correo Electrónico", placeholder="ejemplo@correo.com")
-    contrasena = st.text_input("Contraseña", type="password", placeholder="Ingresa tu contraseña")
-    if st.button("Iniciar Sesión"):
-        if correo and contrasena:
-            st.session_state.logged_in = True
-            st.session_state.page = "select_business"
-            st.rerun()
-        else:
-            st.error("Por favor, completa todos los campos.")
 
 # Pantalla de Selección de Negocio
 def show_select_business():
@@ -315,22 +335,21 @@ def show_select_business():
 
 # Pantalla Principal (Dashboard, Productos, Ventas)
 def show_main():
-    # Barra lateral
     st.sidebar.title("MicroAnalytics")
     opcion = st.sidebar.selectbox(
         "🖥️ Seleccionar sección", ["Dashboard", "🛒 Productos", "💰 Ventas"]
     )
     st.sidebar.markdown("<div class='change-business-button'>", unsafe_allow_html=True)
     if st.sidebar.button("Cambiar Negocio"):
+        st.session_state.business_id = None
         st.session_state.page = "select_business"
         st.rerun()
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-    # Dashboard
     if opcion == "Dashboard":
         st.title(f"Dashboard - Negocio {st.session_state.business_id}")
         st.header("📦 Inventario Actual")
-        productos = get_products()  # Filtrado por business_id
+        productos = get_products()
         if productos:
             df_productos = pd.DataFrame(productos)
             st.dataframe(df_productos, use_container_width=True)
@@ -341,18 +360,17 @@ def show_main():
             st.info("No hay productos disponibles.")
 
         st.header("📈 Ventas Recientes")
-        ventas = []  # Placeholder hasta que integremos inventory_routes
+        ventas = []
         if ventas:
             df_ventas = pd.DataFrame(ventas)
             st.dataframe(df_ventas, use_container_width=True)
         else:
             st.info("No hay ventas disponibles.")
 
-    # Sección de Productos
     elif opcion == "🛒 Productos":
         st.title(f"Product Management - Negocio {st.session_state.business_id}")
         
-        tab1, tab2, tab3, tab4 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar", "🔍 Buscar por ID"])
         
         with tab1:
             st.header("Agregar Producto")
@@ -361,17 +379,17 @@ def show_main():
                 descripcion = st.text_area("Descripción")
                 precio_base = st.number_input("Precio base", min_value=0.0, step=0.01)
                 category_id = st.number_input("ID de Categoría", min_value=1, step=1)
-                business_id = st.session_state.business_id  # Fijado al negocio seleccionado
+                business_id = st.session_state.business_id
                 if st.form_submit_button("Crear"):
                     if nombre and precio_base >= 0 and category_id and business_id:
                         new_product = create_product(nombre, descripcion, precio_base, category_id, business_id)
                         if new_product:
                             st.success(f"Producto creado exitosamente: {nombre}")
-                            # Forzar recarga de datos
-                            get_products()  # Recargar datos manualmente
+                            get_products(force_refresh=True)
+                            time.sleep(4)
                             st.rerun()
                         else:
-                            st.error("Error al crear el producto.")
+                            st.error("Error al crear el producto a pesar de 200 OK, revisa la terminal.")
                     else:
                         st.error("Por favor, completa todos los campos correctamente")
         
@@ -388,7 +406,7 @@ def show_main():
                     descripcion_update = st.text_area("Nueva descripción", value=producto["descripcion"] if producto else "")
                     precio_base_update = st.number_input("Nuevo precio base", min_value=0.0, step=0.01, value=producto["precio_base"] if producto else 0.0)
                     category_id_update = st.number_input("Nuevo ID de Categoría", min_value=1, step=1, value=producto["category_id"] if producto else 1)
-                    business_id_update = st.session_state.business_id  # Fijado al negocio seleccionado
+                    business_id_update = st.session_state.business_id
                     if st.form_submit_button("Actualizar"):
                         if nombre_update and precio_base_update >= 0 and category_id_update and business_id_update:
                             updated_product = update_product(producto_id[0], nombre_update, descripcion_update, precio_base_update, category_id_update, business_id_update)
@@ -421,14 +439,27 @@ def show_main():
         
         with tab4:
             st.header("Lista de Productos")
+            if st.button("Refresh"):
+                st.rerun()
             productos = get_products()
             if productos:
                 df_productos = pd.DataFrame(productos)
                 st.dataframe(df_productos, use_container_width=True)
             else:
                 st.info("No hay productos disponibles.")
+        
+        with tab5:
+            st.header("Buscar Producto por ID")
+            product_id = st.number_input("Ingrese el ID del producto", min_value=1, step=1)
+            if st.button("Buscar"):
+                product = get_product(product_id)
+                if product:
+                    st.write("Detalles del producto:")
+                    df_product = pd.DataFrame([product])
+                    st.table(df_product)
+                else:
+                    st.error("Producto no encontrado.")
 
-    # Sección de Ventas
     elif opcion == "💰 Ventas":
         st.title(f"Sales Management - Negocio {st.session_state.business_id}")
         
@@ -445,7 +476,7 @@ def show_main():
                     cantidad = st.number_input("Cantidad", min_value=1, step=1)
                     if st.form_submit_button("Registrar"):
                         if cantidad > 0:
-                            st.success("Venta registrada exitosamente (simulado por ahora)")  # Placeholder
+                            st.success("Venta registrada exitosamente (simulado por ahora)")
                         else:
                             st.error("La cantidad debe ser mayor a 0")
             else:
@@ -453,7 +484,7 @@ def show_main():
         
         with tab2:
             st.header("Lista de Ventas")
-            ventas = []  # Placeholder hasta que integremos inventory_routes
+            ventas = []
             if ventas:
                 df_ventas = pd.DataFrame(ventas)
                 st.dataframe(df_ventas, use_container_width=True)
@@ -461,9 +492,7 @@ def show_main():
                 st.info("No hay ventas disponibles.")
 
 # Control de navegación
-if st.session_state.page == "login":
-    show_login()
-elif st.session_state.page == "select_business":
+if st.session_state.page == "select_business":
     show_select_business()
 else:
     show_main()

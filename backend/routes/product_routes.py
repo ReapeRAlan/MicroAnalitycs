@@ -28,7 +28,7 @@ router = APIRouter(
 @router.get("/", response_model=List[ProductRead],
             summary="Obtener todos los productos",
             description="Obtiene una lista de todos los productos disponibles en la tabla products")
-def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_products(skip: int = 0, limit: int = 150, db: Session = Depends(get_db)):
     
     return get_products(db, skip=skip, limit=limit)
 
