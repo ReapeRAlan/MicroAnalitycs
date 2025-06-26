@@ -83,8 +83,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL base de la API (no se usará, pero se mantiene para consistencia)
-API_BASE_URL = "http://localhost:8000"
+# URL base de la API
+API_BASE_URL = "http://localhost:8000/api"
 
 # Inicializar estado de la sesión
 if "logged_in" not in st.session_state:
@@ -94,64 +94,136 @@ if "business_id" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-# Funciones con datos simulados
-def get_businesses():
-    return [
-        {"id": 1, "nombre": "Negocio Simulado 1", "descripcion": "Tienda de tecnología en el centro"},
-        {"id": 2, "nombre": "Negocio Simulado 2", "descripcion": "Cafetería artesanal"},
-        {"id": 3, "nombre": "Negocio Simulado 3", "descripcion": "Librería independiente"}
-    ]
+# Restaurar estado si recarga (temporal, mejor con cookies en producción)
+if st.session_state.logged_in and not st.session_state.page == "login":
+    st.session_state.page = "main" if st.session_state.business_id else "select_business"
 
-def get_productos(business_id=None):
-    # Simulación de productos para pruebas
-    return [
-        {"id": 1, "nombre": "Producto Simulado 1", "precio_base": 10.0, "stock_actual": 100},
-        {"id": 2, "nombre": "Producto Simulado 2", "precio_base": 20.0, "stock_actual": 50}
-    ]
+# Funciones para negocios
+def get_businesses(skip=0, limit=100):
+    try:
+        response = requests.get(f"{API_BASE_URL}/business/", params={"skip": skip, "limit": limit})
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener negocios: {str(e)}")
+        return []
 
-def create_producto(nombre, precio_base, stock_actual, business_id=None):
-    st.success(f"Producto creado (simulado): {nombre}, {precio_base}, {stock_actual}")
-    return {"id": len(get_productos()) + 1, "nombre": nombre, "precio_base": precio_base, "stock_actual": stock_actual}
+def get_business(business_id):
+    try:
+        response = requests.get(f"{API_BASE_URL}/business/{business_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener negocio: {str(e)}")
+        return None
 
-def get_producto(producto_id, business_id=None):
-    productos = get_productos(business_id)
-    return next((p for p in productos if p["id"] == producto_id), None)
+def create_business(nombre, descripcion):
+    try:
+        response = requests.post(f"{API_BASE_URL}/business/new", json={"nombre": nombre, "descripcion": descripcion})
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al crear negocio: {str(e)}")
+        return None
 
-def update_producto(producto_id, nombre, precio_base, stock_actual, business_id=None):
-    st.success(f"Producto actualizado (simulado): {producto_id}, {nombre}, {precio_base}, {stock_actual}")
-    return {"id": producto_id, "nombre": nombre, "precio_base": precio_base, "stock_actual": stock_actual}
+def update_business(business_id, nombre, descripcion):
+    try:
+        response = requests.put(f"{API_BASE_URL}/business/update/{business_id}", json={"nombre": nombre, "descripcion": descripcion})
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al actualizar negocio: {str(e)}")
+        return None
 
-def delete_producto(producto_id, business_id=None):
-    st.success(f"Producto eliminado (simulado): {producto_id}")
-    return {"message": "Eliminado"}
+def delete_business(business_id):
+    try:
+        response = requests.delete(f"{API_BASE_URL}/business/delete/{business_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al eliminar negocio: {str(e)}")
+        return None
 
-def registrar_venta(producto_id, cantidad, business_id=None):
-    st.success(f"Venta registrada (simulada): {producto_id}, {cantidad}")
-    return {"id": len(get_ventas(business_id)) + 1, "producto_id": producto_id, "cantidad": cantidad, "fecha": "2025-06-22"}
+# Funciones para productos
+def get_products(skip=0, limit=100):
+    try:
+        response = requests.get(f"{API_BASE_URL}/products/", params={"skip": skip, "limit": limit})
+        response.raise_for_status()
+        products = response.json()
+        print(f"Productos obtenidos de la API: {products}")  # Depuración
+        # Filtrar por business_id si está seleccionado
+        if st.session_state.business_id:
+            filtered_products = [p for p in products if p.get("business_id") == st.session_state.business_id]
+            print(f"Productos filtrados por business_id {st.session_state.business_id}: {filtered_products}")  # Depuración
+            return filtered_products
+        return products
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener productos: {str(e)}")
+        return []
 
-def get_ventas(business_id=None):
-    # Simulación de ventas para pruebas
-    return [
-        {"id": 1, "producto_id": 1, "cantidad": 5, "fecha": "2025-06-22"},
-        {"id": 2, "producto_id": 2, "cantidad": 3, "fecha": "2025-06-21"}
-    ]
+def get_product(product_id):
+    try:
+        response = requests.get(f"{API_BASE_URL}/products/{product_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener producto: {str(e)}")
+        return None
+
+def create_product(nombre, descripcion, precio_base, category_id, business_id):
+    try:
+        response = requests.post(f"{API_BASE_URL}/products/new", json={
+            "nombre": nombre,
+            "descripcion": descripcion,
+            "precio_base": precio_base,
+            "category_id": category_id,
+            "business_id": business_id
+        })
+        response.raise_for_status()
+        new_product = response.json()
+        print(f"Producto creado: {new_product}")  # Depuración
+        return new_product
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al crear producto: {str(e)}")
+        return None
+
+def update_product(product_id, nombre=None, descripcion=None, precio_base=None, category_id=None, business_id=None):
+    try:
+        payload = {k: v for k, v in {
+            "nombre": nombre,
+            "descripcion": descripcion,
+            "precio_base": precio_base,
+            "category_id": category_id,
+            "business_id": business_id
+        }.items() if v is not None}
+        response = requests.put(f"{API_BASE_URL}/products/update/{product_id}", json=payload)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al actualizar producto: {str(e)}")
+        return None
+
+def delete_product(product_id):
+    try:
+        response = requests.delete(f"{API_BASE_URL}/products/delete/{product_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al eliminar producto: {str(e)}")
+        return None
 
 # Pantalla de Login
 def show_login():
     st.markdown("<h1 style='text-align: center; color: #2980B9;'>Bienvenido a MicroAnalytics</h1>", unsafe_allow_html=True)
-    with st.form("form_login"):
-        st.markdown("<h3 style='text-align: center; color: #2980B9;'>Iniciar Sesión</h3>", unsafe_allow_html=True)
-        correo = st.text_input("Correo Electrónico", placeholder="ejemplo@correo.com")
-        contrasena = st.text_input("Contraseña", type="password", placeholder="Ingresa tu contraseña")
-        cols = st.columns([2, 1, 2])
-        with cols[1]:
-            if st.form_submit_button("Iniciar Sesión"):
-                if correo and contrasena:
-                    st.session_state.logged_in = True
-                    st.session_state.page = "select_business"
-                    st.success("Inicio de sesión exitoso (simulado).")
-                else:
-                    st.error("Por favor, completa todos los campos.")
+    correo = st.text_input("Correo Electrónico", placeholder="ejemplo@correo.com")
+    contrasena = st.text_input("Contraseña", type="password", placeholder="Ingresa tu contraseña")
+    if st.button("Iniciar Sesión"):
+        if correo and contrasena:
+            st.session_state.logged_in = True
+            st.session_state.page = "select_business"
+            st.rerun()
+        else:
+            st.error("Por favor, completa todos los campos.")
 
 # Pantalla de Selección de Negocio
 def show_select_business():
@@ -169,7 +241,7 @@ def show_select_business():
                 if cols[2].button("Seleccionar", key=f"select_{n['id']}"):
                     st.session_state.business_id = n["id"]
                     st.session_state.page = "main"
-                    st.success(f"Negocio '{n['nombre']}' seleccionado.")
+                    st.rerun()
         else:
             st.warning("No hay negocios disponibles.")
     
@@ -180,7 +252,12 @@ def show_select_business():
             descripcion = st.text_area("Descripción")
             if st.form_submit_button("Crear"):
                 if nombre:
-                    st.success(f"Negocio creado (simulado): {nombre}, {descripcion}")
+                    new_business = create_business(nombre, descripcion)
+                    if new_business:
+                        st.success(f"Negocio creado exitosamente: {nombre}")
+                        st.rerun()
+                    else:
+                        st.error("Error al crear el negocio.")
                 else:
                     st.error("El nombre es obligatorio.")
     
@@ -194,14 +271,19 @@ def show_select_business():
                 format_func=lambda x: x[1],
                 key="update_business_select"
             )
-            selected_negocio = next((n for n in negocios if n["id"] == negocio_id[0]), None)
+            selected_negocio = get_business(negocio_id[0]) if negocio_id else None
             if selected_negocio:
                 with st.form("form_actualizar_negocio"):
                     nombre_update = st.text_input("Nuevo nombre", value=selected_negocio["nombre"])
                     descripcion_update = st.text_area("Nueva descripción", value=selected_negocio["descripcion"])
                     if st.form_submit_button("Actualizar"):
                         if nombre_update:
-                            st.success(f"Negocio actualizado (simulado): {nombre_update}, {descripcion_update}")
+                            updated_business = update_business(negocio_id[0], nombre_update, descripcion_update)
+                            if updated_business:
+                                st.success(f"Negocio actualizado exitosamente: {nombre_update}")
+                                st.rerun()
+                            else:
+                                st.error("Error al actualizar el negocio.")
                         else:
                             st.error("El nombre es obligatorio.")
             else:
@@ -222,7 +304,12 @@ def show_select_business():
                 )
                 st.warning("Esta acción no se puede deshacer.")
                 if st.form_submit_button("Eliminar"):
-                    st.success(f"Negocio eliminado (simulado): {negocio_id_delete[1]}")
+                    deleted_business = delete_business(negocio_id_delete[0])
+                    if deleted_business:
+                        st.success(f"Negocio eliminado exitosamente: {negocio_id_delete[1]}")
+                        st.rerun()
+                    else:
+                        st.error("Error al eliminar el negocio.")
         else:
             st.warning("No hay negocios disponibles para eliminar.")
 
@@ -236,24 +323,25 @@ def show_main():
     st.sidebar.markdown("<div class='change-business-button'>", unsafe_allow_html=True)
     if st.sidebar.button("Cambiar Negocio"):
         st.session_state.page = "select_business"
+        st.rerun()
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
     # Dashboard
     if opcion == "Dashboard":
         st.title(f"Dashboard - Negocio {st.session_state.business_id}")
         st.header("📦 Inventario Actual")
-        productos = get_productos(st.session_state.business_id)
+        productos = get_products()  # Filtrado por business_id
         if productos:
             df_productos = pd.DataFrame(productos)
             st.dataframe(df_productos, use_container_width=True)
-            fig = px.bar(df_productos, x="nombre", y="stock_actual", title="Stock por Producto",
-                         color="stock_actual", color_continuous_scale="Blues")
+            fig = px.bar(df_productos, x="nombre", y="precio_base", title="Precios por Producto",
+                         color="precio_base", color_continuous_scale="Blues")
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("No hay productos disponibles.")
-        
+
         st.header("📈 Ventas Recientes")
-        ventas = get_ventas(st.session_state.business_id)
+        ventas = []  # Placeholder hasta que integremos inventory_routes
         if ventas:
             df_ventas = pd.DataFrame(ventas)
             st.dataframe(df_ventas, use_container_width=True)
@@ -270,33 +358,45 @@ def show_main():
             st.header("Agregar Producto")
             with st.form("form_crear_producto"):
                 nombre = st.text_input("Nombre del producto")
+                descripcion = st.text_area("Descripción")
                 precio_base = st.number_input("Precio base", min_value=0.0, step=0.01)
-                stock_actual = st.number_input("Stock inicial", min_value=0, step=1)
+                category_id = st.number_input("ID de Categoría", min_value=1, step=1)
+                business_id = st.session_state.business_id  # Fijado al negocio seleccionado
                 if st.form_submit_button("Crear"):
-                    if nombre and precio_base >= 0 and stock_actual >= 0:
-                        nuevo_producto = create_producto(nombre, precio_base, stock_actual, st.session_state.business_id)
-                        if nuevo_producto:
-                            st.success("Producto creado exitosamente")
+                    if nombre and precio_base >= 0 and category_id and business_id:
+                        new_product = create_product(nombre, descripcion, precio_base, category_id, business_id)
+                        if new_product:
+                            st.success(f"Producto creado exitosamente: {nombre}")
+                            # Forzar recarga de datos
+                            get_products()  # Recargar datos manualmente
+                            st.rerun()
+                        else:
+                            st.error("Error al crear el producto.")
                     else:
                         st.error("Por favor, completa todos los campos correctamente")
         
         with tab2:
             st.header("Actualizar Producto")
-            productos = get_productos(st.session_state.business_id)
+            productos = get_products()
             if productos:
                 producto_id = st.selectbox("Seleccionar un producto", 
                                           [(p["id"], p["nombre"]) for p in productos], 
                                           format_func=lambda x: x[1], key="update_select")
-                producto = get_producto(producto_id[0], st.session_state.business_id) if producto_id else None
+                producto = get_product(producto_id[0]) if producto_id else None
                 with st.form("form_actualizar_producto"):
                     nombre_update = st.text_input("Nuevo nombre", value=producto["nombre"] if producto else "")
+                    descripcion_update = st.text_area("Nueva descripción", value=producto["descripcion"] if producto else "")
                     precio_base_update = st.number_input("Nuevo precio base", min_value=0.0, step=0.01, value=producto["precio_base"] if producto else 0.0)
-                    stock_actual_update = st.number_input("Nuevo stock", min_value=0, step=1, value=producto["stock_actual"] if producto else 0)
+                    category_id_update = st.number_input("Nuevo ID de Categoría", min_value=1, step=1, value=producto["category_id"] if producto else 1)
+                    business_id_update = st.session_state.business_id  # Fijado al negocio seleccionado
                     if st.form_submit_button("Actualizar"):
-                        if nombre_update and precio_base_update >= 0 and stock_actual_update >= 0:
-                            updated = update_producto(producto_id[0], nombre_update, precio_base_update, stock_actual_update, st.session_state.business_id)
-                            if updated:
-                                st.success("Producto actualizado exitosamente")
+                        if nombre_update and precio_base_update >= 0 and category_id_update and business_id_update:
+                            updated_product = update_product(producto_id[0], nombre_update, descripcion_update, precio_base_update, category_id_update, business_id_update)
+                            if updated_product:
+                                st.success(f"Producto actualizado exitosamente: {nombre_update}")
+                                st.rerun()
+                            else:
+                                st.error("Error al actualizar el producto.")
                         else:
                             st.error("Por favor, completa todos los campos correctamente")
             else:
@@ -304,21 +404,24 @@ def show_main():
         
         with tab3:
             st.header("Eliminar Producto")
-            productos = get_productos(st.session_state.business_id)
+            productos = get_products()
             if productos:
                 producto_id_delete = st.selectbox("Seleccionar un producto para eliminar", 
                                                 [(p["id"], p["nombre"]) for p in productos], 
                                                 format_func=lambda x: x[1], key="delete_select")
                 if st.button("Eliminar"):
-                    deleted = delete_producto(producto_id_delete[0], st.session_state.business_id)
-                    if deleted:
-                        st.success("Producto eliminado exitosamente")
+                    deleted_product = delete_product(producto_id_delete[0])
+                    if deleted_product:
+                        st.success(f"Producto eliminado exitosamente: {producto_id_delete[1]}")
+                        st.rerun()
+                    else:
+                        st.error("Error al eliminar el producto.")
             else:
                 st.warning("No hay productos disponibles para eliminar.")
         
         with tab4:
             st.header("Lista de Productos")
-            productos = get_productos(st.session_state.business_id)
+            productos = get_products()
             if productos:
                 df_productos = pd.DataFrame(productos)
                 st.dataframe(df_productos, use_container_width=True)
@@ -333,7 +436,7 @@ def show_main():
         
         with tab1:
             st.header("Registrar Venta")
-            productos = get_productos(st.session_state.business_id)
+            productos = get_products()
             if productos:
                 with st.form("form_registrar_venta"):
                     producto_id = st.selectbox("Seleccionar un producto", 
@@ -342,9 +445,7 @@ def show_main():
                     cantidad = st.number_input("Cantidad", min_value=1, step=1)
                     if st.form_submit_button("Registrar"):
                         if cantidad > 0:
-                            venta = registrar_venta(producto_id[0], cantidad, st.session_state.business_id)
-                            if venta:
-                                st.success("Venta registrada exitosamente")
+                            st.success("Venta registrada exitosamente (simulado por ahora)")  # Placeholder
                         else:
                             st.error("La cantidad debe ser mayor a 0")
             else:
@@ -352,7 +453,7 @@ def show_main():
         
         with tab2:
             st.header("Lista de Ventas")
-            ventas = get_ventas(st.session_state.business_id)
+            ventas = []  # Placeholder hasta que integremos inventory_routes
             if ventas:
                 df_ventas = pd.DataFrame(ventas)
                 st.dataframe(df_ventas, use_container_width=True)
