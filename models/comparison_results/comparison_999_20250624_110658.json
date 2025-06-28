@@ -1,0 +1,37 @@
+{
+  "producto_id": 999,
+  "fecha_comparacion": "2025-06-24T11:06:58.446563",
+  "modelos_evaluados": {
+    "linear_auto": {
+      "error": "Error obteniendo datos para producto 999: (sqlite3.OperationalError) no such table: transaction_detail\n[SQL: SELECT transaction_detail.id AS transaction_detail_id, transaction_detail.transaction_id AS transaction_detail_transaction_id, transaction_detail.product_id AS transaction_detail_product_id, transaction_detail.cantidad AS transaction_detail_cantidad, transaction_detail.precio_unitario AS transaction_detail_precio_unitario \nFROM transaction_detail JOIN \"transaction\" ON \"transaction\".id = transaction_detail.transaction_id \nWHERE transaction_detail.product_id = ? ORDER BY \"transaction\".fecha]\n[parameters: (999,)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+      "evaluado": false
+    },
+    "linear_ridge": {
+      "error": "Error obteniendo datos para producto 999: (sqlite3.OperationalError) no such table: transaction_detail\n[SQL: SELECT transaction_detail.id AS transaction_detail_id, transaction_detail.transaction_id AS transaction_detail_transaction_id, transaction_detail.product_id AS transaction_detail_product_id, transaction_detail.cantidad AS transaction_detail_cantidad, transaction_detail.precio_unitario AS transaction_detail_precio_unitario \nFROM transaction_detail JOIN \"transaction\" ON \"transaction\".id = transaction_detail.transaction_id \nWHERE transaction_detail.product_id = ? ORDER BY \"transaction\".fecha]\n[parameters: (999,)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+      "evaluado": false
+    },
+    "polynomial_2": {
+      "error": "Error obteniendo datos para producto 999: (sqlite3.OperationalError) no such table: transaction_detail\n[SQL: SELECT transaction_detail.id AS transaction_detail_id, transaction_detail.transaction_id AS transaction_detail_transaction_id, transaction_detail.product_id AS transaction_detail_product_id, transaction_detail.cantidad AS transaction_detail_cantidad, transaction_detail.precio_unitario AS transaction_detail_precio_unitario \nFROM transaction_detail JOIN \"transaction\" ON \"transaction\".id = transaction_detail.transaction_id \nWHERE transaction_detail.product_id = ? ORDER BY \"transaction\".fecha]\n[parameters: (999,)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+      "evaluado": false
+    },
+    "polynomial_3": {
+      "error": "Error obteniendo datos para producto 999: (sqlite3.OperationalError) no such table: transaction_detail\n[SQL: SELECT transaction_detail.id AS transaction_detail_id, transaction_detail.transaction_id AS transaction_detail_transaction_id, transaction_detail.product_id AS transaction_detail_product_id, transaction_detail.cantidad AS transaction_detail_cantidad, transaction_detail.precio_unitario AS transaction_detail_precio_unitario \nFROM transaction_detail JOIN \"transaction\" ON \"transaction\".id = transaction_detail.transaction_id \nWHERE transaction_detail.product_id = ? ORDER BY \"transaction\".fecha]\n[parameters: (999,)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+      "evaluado": false
+    },
+    "polynomial_auto": {
+      "error": "Error obteniendo datos para producto 999: (sqlite3.OperationalError) no such table: transaction_detail\n[SQL: SELECT transaction_detail.id AS transaction_detail_id, transaction_detail.transaction_id AS transaction_detail_transaction_id, transaction_detail.product_id AS transaction_detail_product_id, transaction_detail.cantidad AS transaction_detail_cantidad, transaction_detail.precio_unitario AS transaction_detail_precio_unitario \nFROM transaction_detail JOIN \"transaction\" ON \"transaction\".id = transaction_detail.transaction_id \nWHERE transaction_detail.product_id = ? ORDER BY \"transaction\".fecha]\n[parameters: (999,)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+      "evaluado": false
+    }
+  },
+  "ranking_modelos": [],
+  "mejor_modelo": null,
+  "metricas_resumen": {
+    "modelos_evaluados": 0,
+    "mejor_r2": 0.0,
+    "mejor_mape": 100.0,
+    "promedio_interpretabilidad": 0.0
+  },
+  "recomendaciones": [
+    "No se pudo evaluar ningún modelo exitosamente"
+  ]
+}

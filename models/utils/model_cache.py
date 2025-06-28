@@ -386,6 +386,51 @@ class ModelCacheMejorado:
         except Exception as e:
             return {'error': f'Error en limpieza: {e}'}
     
+    def get_cached_prediction(self, producto_id: int, model_type: str, dias_adelante: int) -> Optional[Dict]:
+        """
+        Obtiene una predicción desde el caché si existe y es válida.
+        
+        Args:
+            producto_id: ID del producto
+            model_type: Tipo de modelo
+            dias_adelante: Días de predicción
+            
+        Returns:
+            Resultado de predicción si existe en caché, None en caso contrario
+        """
+        try:
+            # Generar hash para la búsqueda
+            input_hash = hashlib.md5(f"{producto_id}_{model_type}_{dias_adelante}".encode()).hexdigest()
+            
+            # Usar el método load_prediction existente
+            return self.load_prediction(producto_id, input_hash, max_age_days=self.max_cache_age_days)
+            
+        except Exception:
+            return None
+
+    def get_cached_model(self, producto_id: int, model_type: str, data=None, force_retrain: bool = False):
+        """
+        Obtiene un modelo desde el caché si existe y es válido.
+        
+        Args:
+            producto_id: ID del producto
+            model_type: Tipo de modelo
+            data: Datos (ignorado, para compatibilidad)
+            force_retrain: Si forzar reentrenamiento
+            
+        Returns:
+            Modelo si existe en caché, None en caso contrario
+        """
+        if force_retrain:
+            return None
+            
+        try:
+            # Usar el método load_model existente
+            return self.load_model(producto_id, model_type, version="latest")
+            
+        except Exception:
+            return None
+
     # Métodos helper privados
     def _generate_cache_id(self, producto_id: int, model_type: str, version: str) -> str:
         """Genera un ID único para el caché."""

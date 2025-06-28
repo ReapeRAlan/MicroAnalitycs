@@ -458,3 +458,72 @@ class ModelComparatorMejorado:
                 
         except Exception as e:
             print(f"Error guardando resultados de comparación: {e}")
+
+class AutoModelSelector:
+    """Selector automático de mejor modelo basado en métricas y contexto."""
+    
+    def __init__(self, producto_id: int):
+        self.producto_id = producto_id
+        self.comparator = ModelComparatorMejorado(producto_id)
+        self._last_comparison = None
+        self._best_model_cache = None
+    
+    def get_best_model(self, data: pd.DataFrame = None, force_recompare: bool = False) -> Optional[str]:
+        """
+        Obtiene el mejor modelo para el producto.
+        
+        Args:
+            data: Datos para evaluación (opcional)
+            force_recompare: Forzar nueva comparación
+            
+        Returns:
+            Nombre del mejor modelo o None si no hay modelos válidos
+        """
+        try:
+            # Si no se fuerza recomparacion y tenemos caché, usar caché
+            if not force_recompare and self._best_model_cache:
+                return self._best_model_cache
+            
+            # Si no hay datos, intentar cargar resultados anteriores
+            if data is None or data.empty:
+                latest_results = self._load_latest_comparison()
+                if latest_results and 'mejor_modelo' in latest_results:
+                    self._best_model_cache = latest_results['mejor_modelo']
+                    return self._best_model_cache
+                return None
+            
+            # Realizar nueva comparación
+            comparison_results = self.comparator.compare_all_models(data)
+            self._last_comparison = comparison_results
+            
+            best_model = comparison_results.get('mejor_modelo')
+            if best_model:
+                self._best_model_cache = best_model
+            
+            return best_model
+            
+        except Exception as e:
+            print(f"Error seleccionando mejor modelo: {e}")
+            return None
+    
+    def get_model_path(self, model_name: str = None) -> Optional[Path]:
+        """Obtiene la ruta del mejor modelo o modelo específico."""
+        if model_name is None:
+            model_name = self._best_model_cache or self.get_best_model()
+        
+        if not model_name:
+            return None
+            
+        return self.comparator._get_model_path(model_name)
+    
+    def _load_latest_comparison(self) -> Optional[dict]:
+        """Carga los últimos resultados de comparación."""
+        try:
+            latest_path = self.comparator.comparison_results_path / f"comparison_{self.producto_id}_latest.json"
+            if latest_path.exists():
+                import json
+                with open(latest_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Error cargando última comparación: {e}")
+        return None
