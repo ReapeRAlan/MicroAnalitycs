@@ -1,7 +1,100 @@
 ﻿import streamlit as st
+import requests
 import pandas as pd
+import plotly.express as px
 import time
-from app import get_products, get_product, create_product, update_product, delete_product  # Importar funciones existentes
+import json
+from datetime import datetime
+
+# URL base de la API
+API_BASE_URL = "http://localhost:8000/api"
+
+# Funciones para productos
+def get_products(skip=0, limit=1000, force_refresh=False):
+    try:
+        timestamp = datetime.now().timestamp()
+        response = requests.get(f"{API_BASE_URL}/products/?skip={skip}&limit={limit}&t={timestamp}")
+        response.raise_for_status()
+        products = response.json()
+        print(f"Productos obtenidos de la API (force_refresh={force_refresh}, skip={skip}, limit={limit}, raw response: {json.dumps(products, indent=2)})")
+        if st.session_state.business_id:
+            filtered_products = [p for p in products if p.get("business_id") == st.session_state.business_id]
+            print(f"Productos filtrados por business_id {st.session_state.business_id}: {json.dumps(filtered_products, indent=2)}")
+            return filtered_products
+        return products
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener productos: {str(e)}")
+        return []
+
+def get_product(product_id):
+    try:
+        response = requests.get(f"{API_BASE_URL}/products/{product_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener producto: {str(e)}")
+        return None
+
+def create_product(nombre, descripcion, precio_base, category_id, business_id):
+    try:
+        response = requests.post(f"{API_BASE_URL}/products/new", json={
+            "nombre": nombre,
+            "descripcion": descripcion,
+            "precio_base": precio_base,
+            "category_id": category_id,
+            "business_id": business_id
+        })
+        response.raise_for_status()
+        new_product = response.json()
+        print(f"Respuesta de creación de producto (raw): {json.dumps(new_product, indent=2)}")
+        print(f"Status Code: {response.status_code}")
+        return new_product
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al crear producto: {str(e)}")
+        return None
+
+def update_product(product_id, nombre=None, descripcion=None, precio_base=None, category_id=None, business_id=None):
+    try:
+        payload = {k: v for k, v in {
+            "nombre": nombre,
+            "descripcion": descripcion,
+            "precio_base": precio_base,
+            "category_id": category_id,
+            "business_id": business_id
+        }.items() if v is not None}
+        response = requests.put(f"{API_BASE_URL}/products/update/{product_id}", json=payload)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al actualizar producto: {str(e)}")
+        return None
+
+def delete_product(product_id):
+    try:
+        response = requests.delete(f"{API_BASE_URL}/products/delete/{product_id}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al eliminar producto: {str(e)}")
+        return None
+
+# Pantalla de Productos (asegúrate de que use estas funciones)
+def show_products():
+    st.title("🛒 Gestión de Productos")
+    st.markdown("Administración de productos para el negocio seleccionado")
+
+    # [Resto de la lógica de show_products, ajustándola para usar las funciones above]
+    # Ejemplo básico (puedes expandirlo según tu implementación actual):
+    products = get_products()
+    if products:
+        df = pd.DataFrame(products)
+        st.dataframe(df, hide_index=True, use_container_width=True)
+    else:
+        st.warning("No hay productos disponibles.")
+
+if __name__ == "__main__":
+    show_products()
+
 
 def show_products():
     st.title(f"Product Management - Negocio {st.session_state.business_id}")

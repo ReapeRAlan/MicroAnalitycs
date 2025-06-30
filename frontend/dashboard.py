@@ -1,7 +1,8 @@
 ﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
-from app import get_products  # Importar funciones existentes de app.py
+from products import get_products  # Importar funciones existentes de products.py
+#Me falta importar ventas (aun no hay ruta)
 
 def show_dashboard():
     st.title(f"Dashboard - Negocio {st.session_state.business_id}")

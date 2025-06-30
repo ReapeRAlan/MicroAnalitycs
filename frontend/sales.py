@@ -1,5 +1,5 @@
 ﻿import streamlit as st
-from app import get_products  # Importar funciones existentes
+from products import get_products  # Importar funciones existentes
 
 def show_sales():
     st.title(f"Sales Management - Negocio {st.session_state.business_id}")
