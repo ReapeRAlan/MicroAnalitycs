@@ -8,7 +8,9 @@ from backend.routes import (
     supplier_routes, 
     inventory_routes,
     supplier_price_routes,
-    transaction_routes)
+    transaction_routes,
+    transaction_detail_routes
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -55,4 +57,10 @@ app.include_router(
     transaction_routes.router,
     prefix="/api",  # Prefijo específico para transacciones
     tags=["Transactions"]
+)
+
+app.include_router(
+    transaction_detail_routes.router,
+    prefix="/api",  # Prefijo específico para detalles de transacciones
+    tags=["Transaction Details"]    
 )
