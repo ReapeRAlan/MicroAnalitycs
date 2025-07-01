@@ -1,0 +1,2 @@
+# Dependencias adicionales para el script de inyección de datos
+faker==19.12.0

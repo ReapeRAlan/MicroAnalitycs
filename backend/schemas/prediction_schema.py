@@ -1,21 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from backend.base import Base
 
-class PredictionBase(BaseModel):
-    product_id: int
-    modelo: str
-    resultado: float
+class Prediction(Base):
+    __tablename__ = "prediction"
 
-class PredictionCreate(PredictionBase):
-    pass
+    id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, ForeignKey("product.id"))
+    modelo = Column(String(100))
+    resultado = Column(Numeric(10, 2))
+    fecha = Column(DateTime, default=func.now())
 
-class PredictionRead(PredictionBase):
-    id: int
-    fecha: datetime
-
-    class Config:
-        orm_mode = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    producto = relationship("Product", back_populates="predicciones")
