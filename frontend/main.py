@@ -4,8 +4,10 @@ from dashboard import show_dashboard
 from products import show_products
 from sales import show_sales
 from category import show_categories
-from chatbot_app import ChatbotFrontend
 from inventory import show_inventory
+from supplier import show_supplier_contact_info
+from supplier_prices import show_supplier_prices
+from chatbot_app import ChatbotFrontend
 
 # Configuración inicial (primer comando)
 st.set_page_config(
@@ -360,8 +362,12 @@ if st.session_state.page == "select_business":
 else:
     # Sidebar para navegación
     st.sidebar.title("MicroAnalytics")
-    opcion = st.sidebar.selectbox("🖥️ Seleccionar sección", ["Dashboard", "📦 Inventario", "🛒 Productos", "💰 Ventas", "📂 Categorías", "🤖 Chat"])
+    opcion = st.sidebar.selectbox("🖥️ Seleccionar sección", ["Dashboard", "📦 Inventario", "🛒 Productos", "💰 Ventas", "📂 Categorías", "Proveedores", "🤖 Chat"])
     
+    # Submenú para Proveedores
+    if opcion == "Proveedores":
+        sub_opcion = st.sidebar.selectbox("📦 Submenú Proveedores", ["📞 Gestión de Contacto", "💰 Precios de Proveedores"])
+
     if opcion == "Dashboard":
         show_dashboard()
     elif opcion == "📦 Inventario":
@@ -372,6 +378,11 @@ else:
         show_sales()
     elif opcion == "📂 Categorías":
         show_categories()
+    elif opcion == "Proveedores":
+        if sub_opcion == "📞 Gestión de Contacto":
+            show_supplier_contact_info()
+        elif sub_opcion == "💰 Precios de Proveedores":
+            show_supplier_prices()
     elif opcion == "🤖 Chat":
         chatbot.run()
 
