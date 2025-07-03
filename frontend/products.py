@@ -35,6 +35,15 @@ def get_product(product_id):
         st.error(f"Error al obtener producto: {str(e)}")
         return None
 
+def get_categories():
+    try:
+        response = requests.get(f"{API_BASE_URL}/categories/")
+        response.raise_for_status()
+        return {cat["id"]: cat["nombre"] for cat in response.json()}
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener categorías: {str(e)}")
+        return {}
+
 def create_product(nombre, descripcion, precio_base, category_id, business_id):
     try:
         response = requests.post(f"{API_BASE_URL}/products/new", json={
@@ -78,28 +87,11 @@ def delete_product(product_id):
         st.error(f"Error al eliminar producto: {str(e)}")
         return None
 
-# Pantalla de Productos (asegúrate de que use estas funciones)
-def show_products():
-    st.title("🛒 Gestión de Productos")
-    st.markdown("Administración de productos para el negocio seleccionado")
-
-    # [Resto de la lógica de show_products, ajustándola para usar las funciones above]
-    # Ejemplo básico (puedes expandirlo según tu implementación actual):
-    products = get_products()
-    if products:
-        df = pd.DataFrame(products)
-        st.dataframe(df, hide_index=True, use_container_width=True)
-    else:
-        st.warning("No hay productos disponibles.")
-
-if __name__ == "__main__":
-    show_products()
-
-
+# Pantalla de Productos
 def show_products():
     st.title(f"Product Management - Negocio {st.session_state.business_id}")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar", "🔍 Buscar por ID"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar"])  # Eliminamos tab5
     
     with tab1:
         st.header("Agregar Producto")
@@ -170,21 +162,31 @@ def show_products():
         st.header("Lista de Productos")
         if st.button("Refresh"):
             st.rerun()
-        productos = get_products()
-        if productos:
-            df_productos = pd.DataFrame(productos)
-            st.dataframe(df_productos, use_container_width=True)
+        # Filtros
+        col1, col2 = st.columns(2)
+        with col1:
+            product_id_filter = st.number_input("Filtrar por ID", min_value=0, value=0, step=1, help="Ingresa 0 para no filtrar por ID")
+        with col2:
+            categories = get_categories()
+            categories = {0: "Todas"} | categories  # Agregar opción "Todas"
+            selected_category = st.selectbox("Filtrar por Categoría", options=list(categories.keys()), format_func=lambda x: categories.get(x, "Sin nombre"))
+
+        # Aplicar filtros
+        filtered_products = get_products()
+        if filtered_products:
+            if product_id_filter > 0:
+                filtered_products = [p for p in filtered_products if p["id"] == product_id_filter]
+            if selected_category != 0:
+                filtered_products = [p for p in filtered_products if p["category_id"] == selected_category]
+            if not filtered_products:
+                st.info("No hay productos que coincidan con los filtros.")
+            else:
+                df_productos = pd.DataFrame(filtered_products)
+                # Agregar columna con nombre de categoría
+                df_productos["categoria_nombre"] = df_productos["category_id"].map(categories).fillna("Sin categoría")
+                st.dataframe(df_productos, use_container_width=True)
         else:
             st.info("No hay productos disponibles.")
-    
-    with tab5:
-        st.header("Buscar Producto por ID")
-        product_id = st.number_input("Ingrese el ID del producto", min_value=1, step=1)
-        if st.button("Buscar"):
-            product = get_product(product_id)
-            if product:
-                st.write("Detalles del producto:")
-                df_product = pd.DataFrame([product])
-                st.table(df_product)
-            else:
-                st.error("Producto no encontrado.")
+
+if __name__ == "__main__":
+    show_products()

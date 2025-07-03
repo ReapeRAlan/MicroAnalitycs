@@ -49,3 +49,4 @@ desktop.ini
 *.sqlite3
 /.vs
 /frontend/.vs
+/models/cache/predictions

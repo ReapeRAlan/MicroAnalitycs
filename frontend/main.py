@@ -3,7 +3,8 @@ from business import show_select_business
 from dashboard import show_dashboard
 from products import show_products
 from sales import show_sales
-from chatbot_app_working import ChatbotFrontend
+from category import show_categories
+from chatbot_app import ChatbotFrontend
 from inventory import show_inventory
 
 # Configuración inicial (primer comando)
@@ -359,7 +360,7 @@ if st.session_state.page == "select_business":
 else:
     # Sidebar para navegación
     st.sidebar.title("MicroAnalytics")
-    opcion = st.sidebar.selectbox("🖥️ Seleccionar sección", ["Dashboard", "📦 Inventario", "🛒 Productos", "💰 Ventas", "🤖 Chat"])
+    opcion = st.sidebar.selectbox("🖥️ Seleccionar sección", ["Dashboard", "📦 Inventario", "🛒 Productos", "💰 Ventas", "📂 Categorías", "🤖 Chat"])
     
     if opcion == "Dashboard":
         show_dashboard()
@@ -369,6 +370,8 @@ else:
         show_products()
     elif opcion == "💰 Ventas":
         show_sales()
+    elif opcion == "📂 Categorías":
+        show_categories()
     elif opcion == "🤖 Chat":
         chatbot.run()
 

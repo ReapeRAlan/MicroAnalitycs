@@ -102,7 +102,7 @@ class ChatbotFrontend:
                 from chatbot.ollama_integration import OllamaClient, OllamaConfig
                 
                 # URL fija de Ollama
-                ollama_url = "https://def7-34-145-102-97.ngrok-free.app"
+                ollama_url = "https://cae0-34-126-190-93.ngrok-free.app"
                 
                 # Crear configuración temporal para detectar modelos
                 temp_config = OllamaConfig(
@@ -238,7 +238,7 @@ class ChatbotFrontend:
                 st.warning("⚠️ No conectado")
             
             # URL de Ollama (fija)
-            st.info("🌐 URL: https://def7-34-145-102-97.ngrok-free.app")
+            st.info("🌐 URL: https://cae0-34-126-190-93.ngrok-free.app")
             
             # Botón para reconectar
             if st.button("🔄 Reconectar Ollama"):
@@ -1524,4 +1524,385 @@ class ChatbotFrontend:
         
         return None
 
-    def _generate_category_analysis
+    def _generate_category_analysis(self, category: str, user_input: str) -> str:
+        """Generar análisis de tendencias para una categoría específica"""
+        import numpy as np
+        
+        # Generar datos simulados para la categoría
+        np.random.seed(hash(category) % 1000)
+        
+        # Simular tendencias de los últimos 6 meses
+        months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio']
+        base_sales = np.random.randint(1000, 5000)
+        
+        # Generar tendencia (creciente, decreciente o estable)
+        trend_type = np.random.choice(['creciente', 'decreciente', 'estable'])
+        
+        sales_data = []
+        for i in range(6):
+            if trend_type == 'creciente':
+                variation = 1 + (i * 0.1) + np.random.uniform(-0.05, 0.05)
+            elif trend_type == 'decreciente':
+                variation = 1 - (i * 0.08) + np.random.uniform(-0.05, 0.05)
+            else:  # estable
+                variation = 1 + np.random.uniform(-0.1, 0.1)
+            
+            sales_data.append(int(base_sales * variation))
+        
+        # Calcular estadísticas
+        avg_sales = np.mean(sales_data)
+        growth_rate = ((sales_data[-1] - sales_data[0]) / sales_data[0]) * 100
+        
+        trend_color = "#1b5e20" if growth_rate > 5 else "#d32f2f" if growth_rate < -5 else "#f57c00"
+        trend_bg = "#e8f5e8" if growth_rate > 5 else "#ffebee" if growth_rate < -5 else "#fff3e0"
+        
+        interpretation = f"""
+        <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0;">
+        
+        ## 📈 Análisis de Tendencias: {category.title()}
+        
+        **Consulta analizada:** "{user_input}"
+        
+        ### 📊 Resumen Ejecutivo
+        
+        <div style="background-color: {trend_bg}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {trend_color.replace('#', '').replace('1b5e20', '#4caf50').replace('d32f2f', '#f44336').replace('f57c00', '#ff9800')};">
+        <strong style="color: {trend_color};">Tendencia General: {trend_type.title()}</strong><br>
+        <strong style="color: #000000;">Crecimiento: {growth_rate:+.1f}%</strong><br>
+        <strong style="color: #000000;">Ventas Promedio: {avg_sales:,.0f} unidades/mes</strong>
+        </div>
+        
+        ### 📅 Datos Históricos (Últimos 6 Meses)
+        
+        """
+        
+        for i, (month, sales) in enumerate(zip(months, sales_data)):
+            change = ""
+            if i > 0:
+                change_pct = ((sales - sales_data[i-1]) / sales_data[i-1]) * 100
+                change_color = "#1b5e20" if change_pct > 0 else "#d32f2f"
+                change = f" <span style='color: {change_color}; font-weight: bold;'>({change_pct:+.1f}%)</span>"
+            
+            interpretation += f"- **{month}**: <span style='color: #000000; font-weight: bold;'>{sales:,} unidades</span>{change}\n"
+        
+        interpretation += f"""
+        
+        ### 🔍 Insights Clave
+        
+        """
+        
+        if trend_type == 'creciente':
+            interpretation += f"""
+        - 📈 **Crecimiento sostenido**: La categoría {category} muestra una tendencia positiva
+        - 🎯 **Oportunidad**: Considera aumentar inventario gradualmente
+        - 💡 **Estrategia**: Aprovecha el momentum con campañas de marketing
+        """
+        elif trend_type == 'decreciente':
+            interpretation += f"""
+        - 📉 **Declive observado**: La categoría {category} está perdiendo tracción
+        - ⚠️ **Alerta**: Revisa estrategias de precio y promoción
+        - 🔄 **Acción**: Considera diversificar o renovar productos
+        """
+        else:
+            interpretation += f"""
+        - 📊 **Estabilidad**: La categoría {category} mantiene ventas consistentes
+        - 🎯 **Oportunidad**: Mercado maduro ideal para optimización
+        - 💡 **Estrategia**: Enfócate en eficiencia y márgenes
+        """
+        
+        interpretation += f"""
+        
+        ### 💡 Recomendaciones Específicas
+        
+        <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
+        🎯 **Próximos pasos:** Usa predicciones específicas por producto para planificar inventario
+        </div>
+        
+        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #2196f3; color: #0d47a1; font-weight: 600;">
+        📊 **Tip:** Pregunta "¿Cuál será la demanda del producto X en los próximos 30 días?" para análisis específico
+        </div>
+        
+        </div>
+        """
+        
+        return interpretation
+
+    def _handle_general_chat(self, user_input: str) -> str:
+        """Manejar chat general con Ollama"""
+        try:
+            # Si hay cliente Ollama disponible, usar IA para responder
+            if self.ollama_client:
+                # Crear contexto sobre las herramientas disponibles
+                system_context = """
+                Eres un asistente especializado en predicción de demanda y análisis de micronegocios.
+                
+                HERRAMIENTAS DISPONIBLES:
+                1. Predicción de demanda: Puedo predecir la demanda futura de productos específicos
+                2. Comparación de modelos: Puedo comparar diferentes modelos de ML para encontrar el más preciso
+                3. Análisis de tendencias: Puedo analizar patrones en los datos históricos
+                4. Reportes de inventario: Puedo generar reportes sobre estado del inventario
+                
+                IMPORTANTE: 
+                - Si el usuario pregunta sobre predicciones, demanda, ventas futuras o productos específicos, sugiere usar las herramientas de predicción
+                - Si pregunta sobre modelos o precisión, sugiere comparar modelos
+                - Para conversación general, responde de manera amigable y útil
+                - Siempre ofrece ayuda específica relacionada con el negocio
+                
+                Responde de manera conversacional y útil. Si detectas que necesitan usar alguna herramienta específica, guíalos hacia esa funcionalidad.
+                """
+                
+                # Usar asyncio para la llamada a Ollama
+                try:
+                    response = asyncio.run(self._get_ollama_response(user_input, system_context))
+                    return response
+                except Exception as e:
+                    logger.warning(f"Error con Ollama: {e}")
+                    return self._get_intelligent_fallback(user_input)
+            else:
+                return self._get_intelligent_fallback(user_input)
+                
+        except Exception as e:
+            return f"Disculpa, hubo un error procesando tu mensaje. ¿Podrías reformular tu pregunta?"
+
+    async def _get_ollama_response(self, user_input: str, system_context: str) -> str:
+        """Obtener respuesta de Ollama de manera asíncrona"""
+        try:
+            if not self.ollama_client:
+                return self._get_intelligent_fallback(user_input)
+            
+            # Preparar el contexto de conversación
+            conversation_context = self._build_conversation_context()
+            
+            # Crear el prompt completo
+            full_prompt = f"""
+            {system_context}
+            
+            CONTEXTO DE CONVERSACIÓN:
+            {conversation_context}
+            
+            USUARIO: {user_input}
+            
+            ASISTENTE: """
+            
+            # Llamar a Ollama con los parámetros correctos
+            response = await self.ollama_client.generate_response(
+                prompt=full_prompt,
+                session_id=self.session_id,
+                include_ml_context=True,
+                stream=False
+            )
+            
+            return response.strip()
+            
+        except Exception as e:
+            logger.error(f"Error en respuesta de Ollama: {e}")
+            return self._get_intelligent_fallback(user_input)
+
+    def _build_conversation_context(self) -> str:
+        """Construir contexto de conversación enriquecido para Mistral"""
+        if not st.session_state.messages:
+            return "Esta es una nueva conversación."
+        
+        # Tomar los últimos 5 mensajes para contexto más rico
+        recent_messages = st.session_state.messages[-5:] if len(st.session_state.messages) > 5 else st.session_state.messages
+        
+        context_parts = []
+        
+        # Construir contexto basado en mensajes
+        for msg in recent_messages:
+            role = "Usuario" if msg['role'] == 'user' else "Asistente"
+            content = msg['content']
+            
+            # Limitar longitud del contenido para contexto
+            content_summary = content[:200] + "..." if len(content) > 200 else content
+            context_parts.append(f"{role}: {content_summary}")
+        
+        context = "\n".join(context_parts)
+        
+        # Agregar información sobre resultados recientes de herramientas
+        tool_results = st.session_state.tool_results
+        
+        if (tool_results['recent_predictions'] or 
+            tool_results['recent_comparisons'] or 
+            tool_results['recent_analysis']):
+            
+            context += "\n\n=== RESULTADOS RECIENTES DE HERRAMIENTAS ==="
+            
+            # Predicciones recientes
+            if tool_results['recent_predictions']:
+                context += "\n\nPREDICCIONES REALIZADAS:"
+                for pred in tool_results['recent_predictions'][-2:]:  # Últimas 2
+                    context += f"\n- Producto {pred['producto_id']}: {pred['prediccion_promedio']:.1f} unidades, modelo {pred['modelo_usado']}, confianza {pred['confianza']:.1%}, tendencia {pred['tendencia']}"
+            
+            # Comparaciones recientes
+            if tool_results['recent_comparisons']:
+                context += "\n\nCOMPARACIONES DE MODELOS:"
+                for comp in tool_results['recent_comparisons'][-1:]:  # Última comparación
+                    context += f"\n- Modelo ganador: {comp['mejor_modelo']}"
+                    context += f"\n- Conclusión: {comp['conclusion']}"
+            
+            # Análisis recientes
+            if tool_results['recent_analysis']:
+                context += "\n\nANÁLISIS REALIZADOS:"
+                for analysis in tool_results['recent_analysis'][-1:]:
+                    context += f"\n- Tipo: {analysis['tipo_analisis']} para {analysis['categoria']}"
+            
+            # Información sobre la última acción
+            if tool_results['last_action']:
+                context += f"\n\nÚLTIMA ACCIÓN: {tool_results['last_action']}"
+        
+        return context
+
+    def _get_intelligent_fallback(self, user_input: str) -> str:
+        """Respuesta inteligente de fallback basada en análisis del input"""
+        user_input_lower = user_input.lower()
+        
+        # Saludos y conversación general
+        if any(word in user_input_lower for word in ['hola', 'buenos', 'buenas', 'hey', 'hi']):
+            return """¡Hola! 👋 Soy tu asistente especializado en análisis de demanda para micronegocios. 
+
+🚀 **¿En qué puedo ayudarte hoy?**
+
+**Mis especialidades:**
+- 📊 **Predicciones de demanda** para productos específicos
+- 🔍 **Comparación de modelos** para encontrar el más preciso  
+- 📈 **Análisis de tendencias** por categoría o producto
+- � **Recomendaciones** personalizadas para tu inventario
+
+**Ejemplos de lo que puedes preguntarme:**
+- *"¿Qué modelo es mejor para mis productos?"*
+- *"¿Qué se espera para la ropa?"*
+- *"Predice la demanda del producto 1"*
+
+¿Qué análisis necesitas?"""
+
+        # Preguntas sobre capacidades
+        elif any(word in user_input_lower for word in ['qué puedes', 'que haces', 'ayuda', 'help', 'capacidades']):
+            return """🤖 **Mis Capacidades:**
+
+**📊 Predicción de Demanda:**
+- Predigo ventas futuras de productos específicos
+- Uso múltiples modelos de ML para mayor precisión
+- Proporciono intervalos de confianza
+
+**🔍 Análisis Avanzado:**
+- Comparo diferentes modelos para encontrar el más preciso
+- Identifico tendencias y patrones estacionales
+- Genero insights accionables para tu negocio
+
+**💡 Ejemplos de lo que puedes preguntarme:**
+- "¿Cuál será la demanda del producto 1 en los próximos 30 días?"
+- "¿Qué modelo es más preciso para mis productos?"
+- "Analiza las tendencias de ventas del último mes"
+
+¿Qué te gustaría explorar?"""
+
+        # Agradecimientos
+        elif any(word in user_input_lower for word in ['gracias', 'thanks', 'thank you']):
+            return """¡De nada! 😊 
+
+Estoy aquí para ayudarte con el análisis de tu negocio. ¿Hay algo más en lo que pueda asistirte?
+
+Recuerda que puedo:
+- 📊 Generar predicciones de demanda
+- 🔍 Comparar modelos de ML
+- 📈 Analizar tendencias de ventas"""
+
+        # Respuesta por defecto más inteligente
+        else:
+            # Detectar si menciona productos o números
+            if any(word in user_input_lower for word in ['producto', 'item', 'artículo']) or any(char.isdigit() for char in user_input):
+                return """Parece que mencionas productos específicos. 
+
+Para ayudarte mejor, puedo:
+- 📊 **Predecir demanda** de un producto específico
+- 🔍 **Comparar modelos** para encontrar el más preciso
+- 📈 **Analizar tendencias** de categorías
+
+¿Podrías especificar qué tipo de análisis necesitas?
+
+**Ejemplo:** "Predice la demanda del producto 1 para los próximos 30 días" """
+
+            else:
+                return """No estoy seguro de cómo ayudarte con esa consulta específica, pero puedo asistirte con:
+
+🎯 **Análisis de Demanda:**
+- Predicciones para productos específicos
+- Comparación de modelos de ML
+- Análisis de tendencias y patrones
+
+💡 **Prueba preguntándome:**
+- "¿Qué modelo es más preciso?"
+- "Predice la demanda del producto X"
+- "Analiza las tendencias de ventas"
+
+¿En qué puedo ayudarte?"""
+
+    def render_chat_input(self):
+        """Renderizar input del chat"""
+       
+        try:
+            # Input del usuario
+            user_input = st.chat_input("Escribe tu consulta sobre predicción de demanda...")
+            
+            if user_input:
+                # Agregar mensaje del usuario
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": user_input,
+                    "timestamp": datetime.now()
+                })
+                
+                # Procesar mensaje y obtener respuesta
+                response = self._process_user_message(user_input)
+                
+                # Agregar respuesta del asistente
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response,
+                    "timestamp": datetime.now()
+                })
+                
+                st.rerun()
+                
+        except Exception as e:
+            st.error(f"Error en chat input: {str(e)}")
+            logger.error(f"Error en render_chat_input(): {e}")
+
+    def run(self):
+        """Ejecutar la aplicación principal"""
+        try:
+            self.render_sidebar()
+            
+            # Título principal
+            st.title("🤖 MicroAnalytics - Chat de Predicción")
+            st.markdown("*Análisis inteligente de demanda para micronegocios*")
+            
+            # Mostrar historial de chat
+            for message in st.session_state.messages:
+                self._render_message(message)
+            
+            # Input del usuario
+            self.render_chat_input()
+            
+        except Exception as e:
+            st.error(f"Error en la aplicación: {str(e)}")
+            logger.error(f"Error en run(): {e}")
+
+
+def main():
+    """Función principal"""
+    try:
+        # Configurar logging
+        logging.basicConfig(level=logging.INFO)
+        
+        # Crear y ejecutar la aplicación
+        app = ChatbotFrontend()
+        app.run()
+        
+    except Exception as e:
+        st.error(f"Error crítico: {str(e)}")
+        logger.error(f"Error crítico en main(): {e}")
+
+
+if __name__ == "__main__":
+    main()

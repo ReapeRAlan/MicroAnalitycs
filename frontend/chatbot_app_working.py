@@ -48,6 +48,235 @@ except ImportError as e:
         LINEAR = "linear"
         POLYNOMIAL = "polynomial"
 
+
+# Configuración de la página
+st.set_page_config(
+    page_title="MicroAnalytics - Chat de Predicción",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# CSS optimizado para máxima legibilidad y contraste
+st.markdown("""
+<style>
+/* Reset y base */
+.main {
+    padding-top: 1rem;
+}
+
+/* Estilos base para mensajes del chat con contraste máximo */
+.stChatMessage {
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    font-size: 16px;
+    line-height: 1.7;
+    border: 2px solid transparent;
+}
+
+.user-message {
+    background-color: #ffffff !important;
+    border: 3px solid #1976d2 !important;
+    color: #0d47a1 !important;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(25, 118, 210, 0.2);
+}
+
+.user-message strong {
+    color: #0d47a1 !important;
+    font-weight: 700;
+}
+
+.assistant-message {
+    background-color: #ffffff !important;
+    border: 3px solid #7b1fa2 !important;
+    color: #212121 !important;
+    box-shadow: 0 4px 15px rgba(123, 31, 162, 0.15);
+}
+
+/* Forzar color negro en todos los elementos del asistente */
+.assistant-message,
+.assistant-message *,
+.assistant-message p,
+.assistant-message div,
+.assistant-message span,
+.assistant-message li,
+.assistant-message td,
+.assistant-message th {
+    color: #000000 !important;
+    font-weight: 500 !important;
+}
+
+/* Títulos con contraste extremo */
+.assistant-message h1,
+.assistant-message h2,
+.assistant-message h3,
+.assistant-message h4,
+.assistant-message h5,
+.assistant-message h6 {
+    color: #000000 !important;
+    font-weight: 800 !important;
+    margin: 20px 0 15px 0 !important;
+    text-shadow: none !important;
+    background-color: #e8eaf6 !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    border-left: 4px solid #3f51b5 !important;
+}
+
+/* Texto enfatizado negro sólido */
+.assistant-message strong,
+.assistant-message b {
+    color: #000000 !important;
+    font-weight: 800 !important;
+    background-color: #fff3e0 !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+}
+
+/* Enlaces completamente visibles */
+.assistant-message a {
+    color: #000000 !important;
+    text-decoration: underline !important;
+    font-weight: 700 !important;
+    background-color: #e3f2fd !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+}
+
+/* Indicadores de confianza con contraste extremo */
+.confidence-high { 
+    color: #000000 !important; 
+    font-weight: 900 !important;
+    background-color: #c8e6c9 !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    border: 3px solid #2e7d32 !important;
+    text-shadow: none !important;
+}
+
+.confidence-medium { 
+    color: #000000 !important; 
+    font-weight: 900 !important;
+    background-color: #ffe0b2 !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    border: 3px solid #f57c00 !important;
+    text-shadow: none !important;
+}
+
+.confidence-low { 
+    color: #000000 !important; 
+    font-weight: 900 !important;
+    background-color: #ffcdd2 !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    border: 3px solid #d32f2f !important;
+    text-shadow: none !important;
+}
+
+/* Listas completamente negras */
+.assistant-message ul,
+.assistant-message ol {
+    color: #000000 !important;
+    margin: 15px 0 !important;
+}
+
+.assistant-message ul li,
+.assistant-message ol li {
+    color: #000000 !important;
+    font-weight: 600 !important;
+    margin: 8px 0 !important;
+    padding-left: 10px !important;
+}
+
+.assistant-message ul li::marker,
+.assistant-message ol li::marker {
+    color: #000000 !important;
+}
+
+/* Código completamente visible */
+.assistant-message code,
+.assistant-message pre {
+    background-color: #f5f5f5 !important;
+    color: #000000 !important;
+    border: 2px solid #666666 !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    font-weight: 600 !important;
+}
+
+/* Forzar estilos en todos los elementos de Streamlit */
+div[data-testid="stMarkdown"],
+div[data-testid="stMarkdown"] *,
+.stMarkdown,
+.stMarkdown *,
+.st-emotion-cache-acwcvw,
+.st-emotion-cache-acwcvw *,
+.st-emotion-cache-1sdpuyj,
+.st-emotion-cache-1sdpuyj * {
+    color: #000000 !important;
+    font-weight: 500 !important;
+}
+
+/* Selectores específicos para elementos problemáticos */
+.assistant-message div[data-testid="stMarkdown"] p,
+.assistant-message div[data-testid="stMarkdown"] div,
+.assistant-message div[data-testid="stMarkdown"] span,
+.assistant-message div[data-testid="stMarkdown"] li,
+.assistant-message .stMarkdown p,
+.assistant-message .stMarkdown div,
+.assistant-message .stMarkdown span,
+.assistant-message .stMarkdown li {
+    color: #000000 !important;
+    font-weight: 500 !important;
+}
+
+/* Sidebar mejorado */
+.sidebar-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    color: #000000 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sidebar-section * {
+    color: #000000 !important;
+}
+
+/* Forzar todo a negro como último recurso */
+.assistant-message [class*="st-emotion"],
+.assistant-message [class*="e1rzn78k"],
+.assistant-message [class*="erovr38"] {
+    color: #000000 !important;
+}
+
+/* Asegurar que elementos específicos sean negros */
+div.stChatMessage.assistant-message * {
+    color: #000000 !important;
+}
+
+/* Override para cualquier clase que Streamlit pueda agregar */
+.assistant-message [class] {
+    color: #000000 !important;
+}
+
+/* Modo oscuro deshabilitado para máximo contraste */
+@media (prefers-color-scheme: dark) {
+    .assistant-message,
+    .assistant-message * {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 class ChatbotFrontend:
     """Clase principal para el frontend del chatbot"""
     
@@ -90,7 +319,7 @@ class ChatbotFrontend:
                 from chatbot.ollama_integration import OllamaClient, OllamaConfig
                 
                 # URL fija de Ollama
-                ollama_url = "https://a88b-34-125-95-156.ngrok-free.app"
+                ollama_url = "https://3200-34-168-28-225.ngrok-free.app"
                 
                 # Crear configuración temporal para detectar modelos
                 temp_config = OllamaConfig(
@@ -226,7 +455,7 @@ class ChatbotFrontend:
                 st.warning("⚠️ No conectado")
             
             # URL de Ollama (fija)
-            st.info("🌐 URL: https://a88b-34-125-95-156.ngrok-free.app")
+            st.info("🌐 URL: https://3200-34-168-28-225.ngrok-free.app")
             
             # Botón para reconectar
             if st.button("🔄 Reconectar Ollama"):
@@ -1367,7 +1596,7 @@ Puedo ayudarte con:
 - Identifico tendencias y patrones estacionales
 - Genero insights accionables para tu negocio
 
-💡 **Ejemplos de lo que puedes preguntarme:**
+**💡 Ejemplos de lo que puedes preguntarme:**
 - "¿Cuál será la demanda del producto 1 en los próximos 30 días?"
 - "¿Qué modelo es más preciso para mis productos?"
 - "Analiza las tendencias de ventas del último mes"
@@ -1450,9 +1679,9 @@ Para ayudarte mejor, puedo:
         try:
             self.render_sidebar()
             
-            # Título principal con clase CSS para blanco
-            st.markdown('<h1 class="chat-title">🤖 MicroAnalytics - Chat de Predicción</h1>', unsafe_allow_html=True)
-            st.markdown('<p class="chat-subtitle">Análisis inteligente de demanda para micronegocios</p>', unsafe_allow_html=True)
+            # Título principal
+            st.title("🤖 MicroAnalytics - Chat de Predicción")
+            st.markdown("*Análisis inteligente de demanda para micronegocios*")
             
             # Mostrar historial de chat
             for message in st.session_state.messages:
