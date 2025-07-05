@@ -29,8 +29,7 @@
 
 3. **Start Backend API**:
    ```bash
-   cd backend
-   uvicorn app:app --reload --host 0.0.0.0 --port 8000
+   uvicorn backend.app:app --reload
    # API will be available at http://localhost:8000
    # Documentation at http://localhost:8000/docs
    ```

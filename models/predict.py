@@ -17,6 +17,11 @@ from .utils.model_cache import model_cache
 
 class ModelPredictor:
     """Clase para manejar predicciones con mejoras completas."""
+    """
+    Facade Pattern:
+    Esta clase actúa como fachada para el sistema de predicción,
+    simplificando la interacción con múltiples modelos y utilidades.
+    """
     
     def __init__(self, producto_id: int):
         if not validate_producto_id(producto_id):

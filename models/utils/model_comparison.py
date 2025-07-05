@@ -461,6 +461,10 @@ class ModelComparatorMejorado:
 
 class AutoModelSelector:
     """Selector automático de mejor modelo basado en métricas y contexto."""
+    """
+    Factory/Registry Pattern:
+    Selecciona y construye instancias de modelos según contexto y métricas.
+    """
     
     def __init__(self, producto_id: int):
         self.producto_id = producto_id

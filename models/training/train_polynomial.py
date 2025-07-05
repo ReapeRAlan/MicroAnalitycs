@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import warnings
-import json
 
 # Imports que pueden fallar se manejan con try/except
 try:

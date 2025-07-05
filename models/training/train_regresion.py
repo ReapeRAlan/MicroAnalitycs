@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import warnings
-import json
-import pickle
 
 # Imports que pueden fallar se manejan con try/except
 try:
@@ -103,6 +101,12 @@ class SimpleDataCleaner:
 
 class ModeloLinealMejorado:
     """Modelo de regresión lineal mejorado con validación de calidad y selección automática."""
+    """
+    Strategy Pattern:
+    Implementa una estrategia específica de entrenamiento y predicción.
+    Template Method Pattern:
+    Define el flujo general de entrenamiento, permitiendo personalización de pasos.
+    """
     
     def __init__(self, producto_id: int):
         self.producto_id = producto_id
