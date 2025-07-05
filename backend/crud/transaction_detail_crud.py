@@ -107,3 +107,58 @@ def delete_transaction_detail(db: Session, detail_id: int) -> bool:
     db.delete(db_detail)
     db.commit()
     return True
+
+# Obtiene una lista de detalles de transacción con relaciones (producto y transacción)
+def get_all_transaction_details_with_relations(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    transaction_id: Optional[int] = None,
+    product_id: Optional[int] = None
+) -> List[TransactionDetailWithRelations]:
+    
+    query = (
+        db.query(TransactionDetail)
+        .options(
+            joinedload(TransactionDetail.producto),
+            joinedload(TransactionDetail.transaccion)
+        )
+    )
+    
+
+    if transaction_id:
+        query = query.filter(TransactionDetail.transaction_id == transaction_id)
+    if product_id:
+        query = query.filter(TransactionDetail.product_id == product_id)
+    
+  
+    db_details = query.offset(skip).limit(limit).all()
+    
+   
+    details_list = []
+    for db_detail in db_details:
+        detail_data = {
+            **db_detail.__dict__,
+            "producto": {
+                "id": db_detail.producto.id,
+                "nombre": db_detail.producto.nombre,
+                "precio_base": float(db_detail.producto.precio_base)
+            } if db_detail.producto else None,
+            "transaccion": {
+                "id": db_detail.transaccion.id,
+                "business_id": db_detail.transaccion.business_id,
+                "total": float(db_detail.transaccion.total),
+                "fecha": db_detail.transaccion.fecha
+            } if db_detail.transaccion else None
+        }
+        
+       
+        detail_data.pop('_sa_instance_state', None)
+        if detail_data['producto']:
+            detail_data['producto'].pop('_sa_instance_state', None)
+        if detail_data['transaccion']:
+            detail_data['transaccion'].pop('_sa_instance_state', None)
+        
+        details_list.append(TransactionDetailWithRelations.model_validate(detail_data))
+    
+    return details_list

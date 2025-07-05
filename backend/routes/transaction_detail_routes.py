@@ -14,7 +14,8 @@ from backend.crud.transaction_detail_crud import (
     get_transaction_details,
     create_transaction_detail,
     update_transaction_detail,
-    delete_transaction_detail
+    delete_transaction_detail,
+    get_all_transaction_details_with_relations
 )
 from backend.base import get_db
 
@@ -103,3 +104,28 @@ def delete_existing_transaction_detail(detail_id: int, db: Session = Depends(get
     if not success:
         raise HTTPException(status_code=404, detail="Transaction detail not found")
     return {"status": "success", "message": "Transaction detail deleted"}
+
+# Ruta GET para obtener todos los detalles de transacción con relaciones
+@router.get("/full/",
+           response_model=List[TransactionDetailWithRelations],
+           summary="Listar detalles completos con relaciones",
+           description="""Obtiene todos los detalles de transacción con información completa de:
+           - Datos básicos del detalle
+           - Información del producto relacionado
+           - Información de la transacción relacionada
+           Incluye paginación y filtros opcionales.""")
+def get_full_transaction_details(
+    skip: int = Query(0, description="Número de registros a saltar", ge=0),
+    limit: int = Query(10000, description="Límite de registros por consulta", le=500),
+    transaction_id: Optional[int] = Query(None, description="Filtrar por ID de transacción"),
+    product_id: Optional[int] = Query(None, description="Filtrar por ID de producto"),
+    db: Session = Depends(get_db)
+):
+
+    return get_all_transaction_details_with_relations(
+        db=db,
+        skip=skip,
+        limit=limit,
+        transaction_id=transaction_id,
+        product_id=product_id
+    )
