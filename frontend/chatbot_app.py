@@ -319,7 +319,7 @@ class ChatbotFrontend:
                 from chatbot.ollama_integration import OllamaClient, OllamaConfig
                 
                 # URL fija de Ollama
-                ollama_url = "https://3200-34-168-28-225.ngrok-free.app"
+                ollama_url = "https://645c-34-169-9-109.ngrok-free.app"
                 
                 # Crear configuración temporal para detectar modelos
                 temp_config = OllamaConfig(

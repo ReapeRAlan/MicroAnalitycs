@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class OllamaConfig(BaseModel):
     """Configuración para Ollama"""
-    base_url: str = "https://3200-34-168-28-225.ngrok-free.app"
+    base_url: str = "https://645c-34-169-9-109.ngrok-free.app"
     model_name: str = "llama3.2"  # o el modelo que tengas en Ollama
     timeout: int = 120
     max_tokens: int = 1000
