@@ -102,7 +102,7 @@ class ChatbotFrontend:
                 from chatbot.ollama_integration import OllamaClient, OllamaConfig
                 
                 # URL fija de Ollama
-                ollama_url = "https://cae0-34-126-190-93.ngrok-free.app"
+                ollama_url = "https://2e2d-34-126-171-145.ngrok-free.app"
                 
                 # Crear configuración temporal para detectar modelos
                 temp_config = OllamaConfig(
@@ -238,7 +238,7 @@ class ChatbotFrontend:
                 st.warning("⚠️ No conectado")
             
             # URL de Ollama (fija)
-            st.info("🌐 URL: https://cae0-34-126-190-93.ngrok-free.app")
+            st.info("🌐 URL: https://2e2d-34-126-171-145.ngrok-free.app")
             
             # Botón para reconectar
             if st.button("🔄 Reconectar Ollama"):

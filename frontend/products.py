@@ -91,7 +91,7 @@ def delete_product(product_id):
 def show_products():
     st.title(f"Product Management - Negocio {st.session_state.business_id}")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar"])  # Eliminamos tab5
+    tab1, tab2, tab3, tab4 = st.tabs(["🛍️ Agregar", "✏️ Actualizar", "🗑️ Eliminar", "📋 Listar"])
     
     with tab1:
         st.header("Agregar Producto")
