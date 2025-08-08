@@ -103,3 +103,45 @@ def delete_supplier_price(db: Session, price_id: int) -> Optional[SupplierPriceR
     db.delete(db_price)
     db.commit()
     return SupplierPriceRead.model_validate(db_price)
+
+# Obtiene todos los precios de proveedores con relaciones cargadas y paginación
+# En backend/crud/supplier_price_crud.py
+def get_all_supplier_prices_with_relations(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    product_id: Optional[int] = None,
+    supplier_id: Optional[int] = None
+) -> list[SupplierPriceWithRelations]:
+    query = (
+        db.query(SupplierPrice)
+        .options(
+            joinedload(SupplierPrice.producto),
+            joinedload(SupplierPrice.proveedor)
+        )
+    )
+    
+    if product_id:
+        query = query.filter(SupplierPrice.product_id == product_id)
+    if supplier_id:
+        query = query.filter(SupplierPrice.supplier_id == supplier_id)
+        
+    db_prices = query.offset(skip).limit(limit).all()
+    
+    prices_list = []
+    for db_price in db_prices:
+        price_data = {
+            **db_price.__dict__,
+            "producto": {
+                "id": db_price.producto.id,
+                "nombre": db_price.producto.nombre
+            } if db_price.producto else None,
+            "proveedor": {
+                "id": db_price.proveedor.id,
+                "nombre": db_price.proveedor.nombre
+            } if db_price.proveedor else None
+        }
+        price_data.pop('_sa_instance_state', None)
+        prices_list.append(SupplierPriceWithRelations.model_validate(price_data))
+    
+    return prices_list
