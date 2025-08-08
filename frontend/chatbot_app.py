@@ -1,1907 +1,738 @@
 """
-Frontend para Ollama - Interfaz de Chat para Predicción de Demanda
-================================================================
+Chatbot Frontend Integrado - Sistema Inteligente sin Ollama
+==========================================================
 
-Aplicación Streamlit que proporciona una interfaz de usuario moderna
-para interactuar con el sistema de predicción de demanda a través de Ollama.
+Interfaz de chatbot inteligente integrada al flujo principal
+que se conecta al backend y usa la base de datos real.
 """
 
 import streamlit as st
-import asyncio
-import json
 import requests
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-import pandas as pd
-import sys
-import os
-
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Agregar el directorio padre al path para importar módulos
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Importaciones básicas sin Ollama por ahora
-try:
-    from chatbot.communication_schema import (
-        PredictionScope, ModelType, RequestType
-    )
-    OLLAMA_AVAILABLE = True
-except ImportError as e:
-    print(f"Ollama integration not available: {e}")
-    OLLAMA_AVAILABLE = False
-    # Definir enums básicos como fallback
-    class PredictionScope:
-        SINGLE_PRODUCT = "single_product"
-        CATEGORY = "category" 
-        BUSINESS = "business"
-        MARKET = "market"
-    
-    class ModelType:
-        AUTO_SELECT = "auto_select"
-        LINEAR = "linear"
-        POLYNOMIAL = "polynomial"
-
-
-# Configuración de la página
-# st.set_page_config(
-#     page_title="MicroAnalytics - Chat de Predicción",
-#     page_icon="🤖",
-#     layout="wide",
-#     initial_sidebar_state="expanded"
-# )
-
-# CSS optimizado para máxima legibilidad y contraste
+import json
+from datetime import datetime
+from typing import Dict, Any, List
 
 
 class ChatbotFrontend:
-    """Clase principal para el frontend del chatbot"""
+    """Chatbot inteligente integrado al sistema principal"""
     
     def __init__(self):
-        self.backend_url = "http://localhost:8000"  # URL del backend FastAPI
+        self.backend_url = "http://localhost:8000"
         self.session_id = self._get_session_id()
-        self.ollama_client = None
-        self.interpreter = None
         
         # Inicializar estado de la sesión
-        if 'messages' not in st.session_state:
-            st.session_state.messages = []
-        if 'prediction_history' not in st.session_state:
-            st.session_state.prediction_history = []
-        if 'current_context' not in st.session_state:
-            st.session_state.current_context = {}
-        if 'tool_results' not in st.session_state:
-            st.session_state.tool_results = {
-                'recent_predictions': [],
-                'recent_comparisons': [],
-                'recent_analysis': [],
-                'last_action': None,
-                'last_results': None
-            }
+        if 'chat_messages' not in st.session_state:
+            st.session_state.chat_messages = []
+        if 'chatbot_ready' not in st.session_state:
+            st.session_state.chatbot_ready = False
+        if 'products_cache' not in st.session_state:
+            st.session_state.products_cache = []
+        if 'show_product_selector' not in st.session_state:
+            st.session_state.show_product_selector = False
     
     def _get_session_id(self) -> str:
         """Obtener o crear ID de sesión"""
         if 'session_id' not in st.session_state:
-            st.session_state.session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            st.session_state.session_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         return st.session_state.session_id
     
-    async def _init_ollama_client(self):
-        """Inicializar cliente de Ollama con detección automática de modelos"""
-        if not OLLAMA_AVAILABLE:
-            logger.warning("Ollama integration no disponible")
-            return False
-            
-        if self.ollama_client is None:
-            try:
-                from chatbot.ollama_integration import OllamaClient, OllamaConfig
-                
-                # URL fija de Ollama
-                ollama_url = "https://2e2d-34-126-171-145.ngrok-free.app"
-                
-                # Crear configuración temporal para detectar modelos
-                temp_config = OllamaConfig(
-                    base_url=ollama_url,
-                    model_name="llama3.2",  # Modelo por defecto
-                    timeout=30,
-                    max_tokens=1000,
-                    temperature=0.7
-                )
-                
-                # Crear cliente temporal
-                temp_client = OllamaClient(temp_config)
-                
-                # Detectar modelos disponibles
-                available_models = await self._detect_available_models(temp_client, ollama_url)
-                
-                if not available_models:
-                    logger.warning("No se pudieron detectar modelos en Ollama")
-                    return False
-                
-                # Seleccionar el mejor modelo
-                best_model = self._select_best_model(available_models)
-                logger.info(f"Usando modelo: {best_model} de {available_models}")
-                
-                # Crear configuración final
-                final_config = OllamaConfig(
-                    base_url=ollama_url,
-                    model_name=best_model,
-                    timeout=120,
-                    max_tokens=1000,
-                    temperature=0.7
-                )
-                
-                # Crear cliente final
-                self.ollama_client = OllamaClient(final_config)
-                
-                # Verificar conexión final
-                if await self.ollama_client.check_connection():
-                    logger.info(f"Ollama conectado exitosamente con modelo {best_model}")
-                    st.session_state.ollama_connected = True
-                    st.session_state.ollama_model_used = best_model
-                    return True
-                else:
-                    logger.warning("No se pudo conectar con Ollama")
-                    self.ollama_client = None
-                    return False
-                    
-            except ImportError as e:
-                logger.error(f"Error importando Ollama (posiblemente falta aiohttp): {e}")
-                return False
-            except Exception as e:
-                logger.error(f"Error inicializando Ollama: {e}")
-                self.ollama_client = None
-                return False
-        
-        return True
-
-    async def _detect_available_models(self, client, base_url):
-        """Detectar modelos disponibles en Ollama"""
+    def get_products_list(self) -> List[Dict[str, Any]]:
+        """Obtener lista de productos del backend"""
         try:
-            # Intentar importar aiohttp
-            try:
-                import aiohttp
-            except ImportError:
-                logger.error("aiohttp no está disponible. Instálalo con: pip install aiohttp")
-                return []
+            response = requests.get(f"{self.backend_url}/api/products", timeout=5)
+            if response.status_code == 200:
+                products = response.json()
+                st.session_state.products_cache = products
+                return products
+            else:
+                return st.session_state.products_cache
+        except Exception:
+            return st.session_state.products_cache
+    
+    def render_product_selector(self):
+        """Renderizar selector interactivo de productos mejorado"""
+        st.markdown("### 🎯 Selector Inteligente de Productos")
+        
+        products = self.get_products_list()
+        
+        if not products:
+            st.warning("⚠️ No se pudieron cargar los productos. Verifica que el backend esté funcionando.")
+            if st.button("🔄 Recargar Productos"):
+                st.rerun()
+            return
+        
+        # Crear opciones para el selectbox con más información
+        product_options = {}
+        for product in products:
+            product_id = product.get('id', '?')
+            product_name = product.get('nombre', f'Producto {product_id}')
+            price = product.get('precio_base', 0)
+            category = product.get('categoria', {}).get('nombre', 'Sin categoría') if isinstance(product.get('categoria'), dict) else 'Sin categoría'
             
-            async with aiohttp.ClientSession() as session:
-                headers = {
-                    "ngrok-skip-browser-warning": "true",
-                    "Content-Type": "application/json"
-                }
+            option_text = f"{product_name} - ${price:.2f} | {category} (ID: {product_id})"
+            product_options[option_text] = product
+        
+        # Selector principal
+        selected_option = st.selectbox(
+            "🔍 Selecciona un producto:",
+            options=list(product_options.keys()),
+            key="product_selector",
+            help="Elige un producto para analizar, predecir o comparar modelos"
+        )
+        
+        if selected_option:
+            selected_product = product_options[selected_option]
+            product_id = selected_product.get('id')
+            product_name = selected_product.get('nombre', f'Producto {product_id}')
+            
+            # Mostrar información del producto seleccionado
+            with st.expander(f"📋 Información de {product_name}", expanded=False):
+                col_info1, col_info2 = st.columns(2)
+                with col_info1:
+                    st.metric("💰 Precio Base", f"${selected_product.get('precio_base', 0):.2f}")
+                    st.write(f"🏷️ **Categoría:** {selected_product.get('categoria', {}).get('nombre', 'Sin categoría') if isinstance(selected_product.get('categoria'), dict) else 'Sin categoría'}")
+                with col_info2:
+                    st.metric("🆔 ID Producto", product_id)
+                    st.write(f"📝 **Descripción:** {selected_product.get('descripcion', 'Sin descripción')}")
+            
+            st.markdown("---")
+            
+            # Opciones de análisis organizadas en pestañas
+            tab1, tab2, tab3 = st.tabs(["🤖 Machine Learning", "📊 Análisis", "📦 Inventario"])
+            
+            with tab1:
+                st.markdown("**🔮 Predicciones y Modelos**")
                 
-                async with session.get(
-                    f"{base_url}/api/tags",
-                    timeout=aiohttp.ClientTimeout(total=10),
-                    headers=headers
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        models = [model.get('name', '').split(':')[0] for model in data.get('models', [])]
-                        models = [m for m in models if m]  # Filtrar nombres vacíos
-                        logger.info(f"Modelos detectados: {models}")
-                        return models
-                    else:
-                        logger.warning(f"Error al obtener modelos: {response.status}")
-                        return []
-        except Exception as e:
-            logger.error(f"Error detectando modelos: {e}")
-            # Fallback con modelos comunes
-            return ['llama3.2', 'llama3.1', 'llama3']
-
-    def _select_best_model(self, available_models):
-        """Seleccionar el mejor modelo basado en prioridad"""
-        # Prioridad de modelos (del mejor al menos preferido)
-        priority_models = [
-            'llama3.2',
-            'llama3.1', 
-            'llama3',
-            'llama2',
-            'codellama',
-            'mistral',
-            'gemma',
-            'phi',
-            'qwen'
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("� Predecir Demanda", key="predict_btn", use_container_width=True):
+                        command = f"predecir producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col2:
+                    if st.button("🔍 Comparar Modelos", key="compare_btn", use_container_width=True):
+                        command = f"comparar modelos para producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col3:
+                    if st.button("🏆 Mejor Modelo", key="best_model_btn", use_container_width=True):
+                        command = f"cuál modelo es mejor para producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+            
+            with tab2:
+                st.markdown("**📊 Análisis de Negocio**")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("📈 Tendencias", key="trends_btn", use_container_width=True):
+                        command = f"analizar tendencias producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col2:
+                    if st.button("💰 Análisis Ventas", key="sales_analysis_btn", use_container_width=True):
+                        command = f"ventas producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col3:
+                    if st.button("📊 Estadísticas", key="stats_btn", use_container_width=True):
+                        command = f"estadísticas producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+            
+            with tab3:
+                st.markdown("**📦 Gestión de Inventario**")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("📦 Ver Inventario", key="inventory_btn", use_container_width=True):
+                        command = f"inventario producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col2:
+                    if st.button("⚠️ Alertas Stock", key="alerts_btn", use_container_width=True):
+                        command = f"alertas stock producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+                
+                with col3:
+                    if st.button("📋 Recomendaciones", key="recommendations_btn", use_container_width=True):
+                        command = f"recomendar para producto {product_id}"
+                        self._send_quick_command(command)
+                        st.session_state.show_product_selector = False
+                        st.rerun()
+            
+            st.markdown("---")
+            
+            # Botones de acción general
+            col_gen1, col_gen2, col_gen3 = st.columns(3)
+            
+            with col_gen1:
+                if st.button("� Comparar Todos los Modelos", key="compare_all_btn", use_container_width=True):
+                    command = "comparar todos los modelos"
+                    self._send_quick_command(command)
+                    st.session_state.show_product_selector = False
+                    st.rerun()
+            
+            with col_gen2:
+                if st.button("📊 Análisis General", key="general_analysis_btn", use_container_width=True):
+                    command = "análisis general de negocio"
+                    self._send_quick_command(command)
+                    st.session_state.show_product_selector = False
+                    st.rerun()
+            
+            with col_gen3:
+                if st.button("❌ Cerrar Selector", key="cancel_btn", use_container_width=True):
+                    st.session_state.show_product_selector = False
+                    st.rerun()
+        
+        else:
+            st.info("👆 Selecciona un producto para ver las opciones disponibles")
+    
+    def detect_prediction_intent(self, message: str) -> bool:
+        """Detectar si el usuario quiere hacer una predicción"""
+        prediction_keywords = [
+            'predic', 'demanda', 'pronóstico', 'forecast', 'estimar', 
+            'proyectar', 'cuánto vender', 'futuro', 'próximos días',
+            'ventas futuras', 'qué esperar', 'modelo', 'machine learning',
+            'ml', 'algoritmo', 'comparar modelo', 'mejor modelo'
         ]
         
-        # Buscar el primer modelo de la lista de prioridad que esté disponible
-        for preferred in priority_models:
-            for available in available_models:
-                if preferred.lower() in available.lower():
-                    return available
-        
-        # Si no se encuentra ninguno preferido, usar el primero disponible
-        if available_models:
-            return available_models[0]
-        
-        # Fallback
-        return "llama3.2"
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in prediction_keywords)
     
-    def render_sidebar(self):
-        """Renderizar barra lateral con configuraciones"""
-        st.sidebar.header("🤖 Configuración del Chat")
+    def detect_model_comparison_intent(self, message: str) -> bool:
+        """Detectar si el usuario quiere comparar modelos"""
+        comparison_keywords = [
+            'comparar modelo', 'mejor modelo', 'cuál modelo', 'qué modelo',
+            'evaluar modelo', 'modelo más preciso', 'comparación', 'algoritmo',
+            'machine learning', 'ml', 'linear', 'polynomial', 'precisión'
+        ]
         
-        with st.sidebar.container():
-            st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-            st.subheader("🔗 Estado de Ollama")
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in comparison_keywords)
+    
+    def detect_needs_product_selection(self, message: str) -> bool:
+        """Detectar si el mensaje necesita selección de producto"""
+        # Si ya menciona un ID específico, no necesita selector
+        import re
+        if re.search(r'producto\s+\d+', message.lower()):
+            return False
+        
+        needs_product_keywords = [
+            'predic', 'inventario de producto', 'stock de producto',
+            'ventas de producto', 'análisis producto', 'modelo para producto',
+            'comparar modelo', 'mejor modelo', 'tendencia producto'
+        ]
+        
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in needs_product_keywords)
+    
+    def suggest_product_selection(self, message: str) -> str:
+        """Sugerir selección de producto cuando sea necesario"""
+        if self.detect_needs_product_selection(message):
+            return ("🎯 **Tu consulta necesita un producto específico**\n\n"
+                   "Para darte una respuesta precisa, necesito saber sobre qué producto quieres información. "
+                   "Puedes:\n\n"
+                   "1️⃣ Usar el **Selector Interactivo** (aparece abajo)\n"
+                   "2️⃣ Especificar el ID: `predecir producto 1`\n"
+                   "3️⃣ Mencionar el nombre: `análisis de Laptop Gaming`\n\n"
+                   "💡 **Ejemplo:** `comparar modelos para producto 2`")
+        return ""
+
+    def check_backend_connection(self) -> bool:
+        """Verificar conexión con el backend"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/chatbot/health", timeout=3)
+            return response.status_code == 200
+        except Exception:
+            return False
+    
+    def send_message_to_backend(self, message: str) -> Dict[str, Any]:
+        """Enviar mensaje al backend"""
+        try:
+            payload = {
+                "content": message,
+                "session_id": self.session_id,
+                "timestamp": datetime.now().isoformat()
+            }
             
-            # Estado de conexión
-            if st.session_state.get('ollama_connected', False):
-                st.success(f"✅ Conectado - Modelo: {st.session_state.get('ollama_model_used', 'N/A')}")
+            response = requests.post(
+                f"{self.backend_url}/api/chatbot/message",
+                json=payload,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return response.json()
             else:
-                st.warning("⚠️ No conectado")
-            
-            # URL de Ollama (fija)
-            st.info("🌐 URL: https://2e2d-34-126-171-145.ngrok-free.app")
-            
-            # Botón para reconectar
-            if st.button("🔄 Reconectar Ollama"):
-                self.ollama_client = None
-                st.session_state.ollama_connected = False
-                try:
-                    connected = asyncio.run(self._init_ollama_client())
-                    if connected:
-                        st.success("✅ Reconectado exitosamente")
-                        st.rerun()
-                    else:
-                        st.error("❌ Error al reconectar")
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Configuración de predicciones
-            st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-            st.subheader("📊 Configuración de Predicciones")
-            
-            # Días para predicción
-            prediction_days = st.slider(
-                "Días a predecir",
-                min_value=7,
-                max_value=90,
-                value=st.session_state.get('prediction_days', 30),
-                step=7,
-                help="Número de días hacia el futuro para las predicciones"
-            )
-            st.session_state.prediction_days = prediction_days
-            
-            # Incluir intervalos de confianza
-            include_confidence = st.checkbox(
-                "Incluir intervalos de confianza",
-                value=st.session_state.get('include_confidence', True),
-                help="Mostrar rangos de confianza en las predicciones"
-            )
-            st.session_state.include_confidence = include_confidence
-            
-            # Usar caché
-            use_cache = st.checkbox(
-                "Usar caché de modelos",
-                value=st.session_state.get('use_cache', True),
-                help="Acelerar predicciones usando modelos en caché"
-            )
-            st.session_state.use_cache = use_cache
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Historial de predicciones
-        st.sidebar.header("� Historial")
-        
-        with st.sidebar.container():
-            st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-            
-            # Alcance de predicción
-            scope_options = {
-                "Producto único": PredictionScope.SINGLE_PRODUCT,
-                "Categoría": PredictionScope.CATEGORY,
-                "Negocio": PredictionScope.BUSINESS,
-                "Mercado": PredictionScope.MARKET
+                return {
+                    "success": False,
+                    "response": f"Error del servidor: {response.status_code}",
+                    "fallback": True
+                }
+                
+        except requests.RequestException as e:
+            return {
+                "success": False,
+                "response": self._get_fallback_response(message),
+                "fallback": True,
+                "error": str(e)
             }
-            
-            selected_scope = st.selectbox(
-                "Alcance",
-                options=list(scope_options.keys()),
-                help="Alcance de la predicción"
-            )
-            st.session_state.prediction_scope = scope_options[selected_scope]
-            
-            # Días de predicción
-            prediction_days = st.slider(
-                "Días a predecir",
-                min_value=1,
-                max_value=365,
-                value=30,
-                help="Número de días hacia el futuro"
-            )
-            st.session_state.prediction_days = prediction_days
-            
-            # Tipo de modelo
-            model_options = {
-                "Auto-selección": ModelType.AUTO_SELECT,
-                "Lineal": ModelType.LINEAR,
-                "Polinomial": ModelType.POLYNOMIAL
-            }
-            
-            selected_model_type = st.selectbox(
-                "Tipo de modelo",
-                options=list(model_options.keys()),
-                help="Modelo de ML a utilizar"
-            )
-            st.session_state.model_type = model_options[selected_model_type]
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+    
+    def _get_fallback_response(self, message: str) -> str:
+        """Respuesta de fallback cuando el backend no está disponible"""
+        message_lower = message.lower()
         
-        # Historial de predicciones
-        st.sidebar.header("📈 Historial")
-        
-        if st.session_state.prediction_history:
-            for i, pred in enumerate(st.session_state.prediction_history[-5:]):
-                with st.sidebar.expander(f"Predicción {i+1}"):
-                    st.write(f"**Fecha:** {pred['timestamp']}")
-                    st.write(f"**Confianza:** {pred['confidence']:.1%}")
-                    st.write(f"**Modelo:** {pred['model']}")
+        # Respuestas básicas sin backend
+        if any(word in message_lower for word in ['hola', 'hello', 'buenos', 'buenas']):
+            return """🤖 **¡Hola!** 
+
+Soy tu asistente de MicroAnalytics (modo offline).
+
+⚠️ **Nota:** El backend no está disponible, pero puedo ayudarte con información básica.
+
+📋 **Para usar todas las funciones:**
+1. Asegúrate de que el backend esté ejecutándose
+2. Ejecuta: `uvicorn backend.app:app --reload`
+3. Recarga esta página
+
+💡 **Comandos que funcionarán cuando el backend esté activo:**
+• "inventario producto 1"
+• "predecir producto 1" 
+• "ventas del mes"
+• "productos disponibles" """
+
+        elif any(word in message_lower for word in ['ayuda', 'help', 'comando']):
+            return """🤖 **Comandos Disponibles (cuando el backend esté activo):**
+
+📊 **Predicciones:**
+• `predecir producto 1` - Predice demanda futura
+• `demanda producto X próximos 30 días`
+
+📦 **Inventario:**
+• `inventario producto 1` - Ver stock
+• `productos disponibles` - Lista productos
+
+💰 **Ventas:**
+• `ventas del mes` - Reporte mensual
+• `cómo va mi negocio` - Análisis general
+
+🔧 **Estado actual:** Backend desconectado
+Para usar el chatbot completo, inicia el backend con:
+```
+uvicorn backend.app:app --reload
+```"""
+
+        elif 'predic' in message_lower or 'demanda' in message_lower:
+            return """📊 **Predicción de Demanda** (Demo)
+
+⚠️ **Backend requerido** para predicciones reales.
+
+🎯 **Lo que podrás hacer cuando el backend esté activo:**
+• Predicciones basadas en datos reales de tu negocio
+• Análisis de tendencias inteligentes
+• Recomendaciones personalizadas de inventario
+• Comparación de modelos de ML
+
+🚀 **Para activar:** `uvicorn backend.app:app --reload`"""
+
+        elif 'inventario' in message_lower or 'stock' in message_lower:
+            return """📦 **Consulta de Inventario** (Demo)
+
+⚠️ **Backend requerido** para datos reales de inventario.
+
+📋 **Funciones disponibles con backend activo:**
+• Stock en tiempo real por producto
+• Alertas de stock bajo
+• Valorización de inventario
+• Recomendaciones de reabastecimiento
+
+🚀 **Para activar:** `uvicorn backend.app:app --reload`"""
+
         else:
-            st.sidebar.info("No hay predicciones aún")
-        
-        # Limpiar historial
-        if st.sidebar.button("🗑️ Limpiar Chat"):
-            st.session_state.messages = []
-            st.session_state.prediction_history = []
-            st.rerun()
+            return """🤖 **Chatbot en Modo Offline**
+
+⚠️ **El backend no está disponible**
+
+🔧 **Para usar todas las funciones:**
+1. Abre una terminal en la carpeta del proyecto
+2. Ejecuta: `uvicorn backend.app:app --reload`
+3. Recarga esta página
+
+✨ **Funciones que estarán disponibles:**
+• Predicciones de demanda inteligentes
+• Consultas de inventario en tiempo real
+• Reportes de ventas automáticos
+• Análisis de negocio personalizado
+
+💡 **Tip:** El chatbot usa tu base de datos real para respuestas precisas."""
     
     def render_chat_interface(self):
-        """Renderizar interfaz principal de chat"""
-        st.header("🤖 Asistente de Predicción de Demanda")
-        st.markdown("Pregunta sobre predicciones, análisis de tendencias y insights de tu negocio.")
+        """Renderizar la interfaz principal del chat"""
+        # Título con clase especial para mantener color blanco
+        st.markdown('<h1 class="chat-title">🤖 Asistente Inteligente de MicroAnalytics</h1>', unsafe_allow_html=True)
+        
+        # Verificar estado del backend
+        backend_status = self.check_backend_connection()
+        
+        if backend_status:
+            st.success("✅ Chatbot conectado al backend - Todas las funciones disponibles")
+        else:
+            st.warning("⚠️ Backend desconectado - Funciones limitadas. Ejecuta: `uvicorn backend.app:app --reload`")
+        
+        # Mostrar selector de productos si está activado
+        if st.session_state.show_product_selector and backend_status:
+            self.render_product_selector()
+            st.markdown("---")
         
         # Contenedor para mensajes
         chat_container = st.container()
         
         with chat_container:
             # Mostrar historial de mensajes
-            for message in st.session_state.messages:
+            for message in st.session_state.chat_messages:
                 self._render_message(message)
         
         # Input para nuevos mensajes
-        user_input = st.chat_input("Escribe tu pregunta sobre predicción de demanda...")
+        user_input = st.chat_input("Escribe tu consulta o usa 'predicción' para abrir el selector...")
         
         if user_input:
-            # Agregar mensaje del usuario
-            st.session_state.messages.append({
-                "role": "user",
-                "content": user_input,
-                "timestamp": datetime.now()
-            })
-            
-            # Procesar mensaje
-            with st.spinner("Analizando y generando respuesta..."):
-                response = self._process_user_message(user_input)
-            
-            # Agregar respuesta del asistente
-            st.session_state.messages.append({
+            # Detectar si quiere hacer una predicción y no especifica producto
+            if self.detect_prediction_intent(user_input) and not any(char.isdigit() for char in user_input):
+                st.session_state.show_product_selector = True
+                
+                # Agregar mensaje del usuario
+                user_message = {
+                    "role": "user", 
+                    "content": user_input,
+                    "timestamp": datetime.now()
+                }
+                st.session_state.chat_messages.append(user_message)
+                
+                # Respuesta del asistente
+                assistant_message = {
+                    "role": "assistant",
+                    "content": """🎯 **¡Perfecto! Te ayudo con la predicción.**
+
+He activado el **Selector Inteligente de Productos** arriba para que puedas:
+
+📊 **Seleccionar fácilmente** el producto que te interesa
+🔍 **Ver información detallada** (nombre, precio, ID)
+📈 **Generar predicción** con un solo click
+📦 **Consultar inventario** del producto seleccionado
+🤖 **Comparar modelos ML** para mayor precisión
+
+💡 **Tip:** También puedes escribir directamente "predecir producto X" donde X es el número de ID.""",
+                    "timestamp": datetime.now(),
+                    "backend_used": backend_status
+                }
+                st.session_state.chat_messages.append(assistant_message)
+                st.rerun()
+            else:
+                # Procesar mensaje normal
+                self._process_normal_message(user_input, backend_status)
+    
+    def _process_normal_message(self, user_input: str, backend_status: bool):
+        """Procesar mensaje normal del usuario con detección inteligente"""
+        # Agregar mensaje del usuario
+        user_message = {
+            "role": "user",
+            "content": user_input,
+            "timestamp": datetime.now()
+        }
+        st.session_state.chat_messages.append(user_message)
+        
+        # Verificar si necesita selección de producto
+        suggestion = self.suggest_product_selection(user_input)
+        if suggestion:
+            # Mostrar sugerencia y activar selector
+            st.session_state.show_product_selector = True
+            assistant_message = {
                 "role": "assistant",
-                "content": response,
-                "timestamp": datetime.now()
-            })
-            
+                "content": suggestion,
+                "timestamp": datetime.now(),
+                "backend_used": backend_status
+            }
+            st.session_state.chat_messages.append(assistant_message)
             st.rerun()
+            return
+        
+        # Verificar si quiere comparación de modelos general
+        if self.detect_model_comparison_intent(user_input) and 'todos' in user_input.lower():
+            enhanced_command = "comparar todos los modelos"
+            user_input = enhanced_command
+        
+        # Procesar mensaje y obtener respuesta
+        with st.spinner("🤖 Analizando tu consulta..."):
+            if backend_status:
+                response_data = self.send_message_to_backend(user_input)
+                response_content = response_data.get('response', 'Error procesando mensaje')
+                
+                # Si el backend no entendió algo específico, dar sugerencias
+                if 'no entiendo' in response_content.lower() or 'error' in response_content.lower():
+                    # Intentar mejorar el comando
+                    if self.detect_prediction_intent(user_input):
+                        response_content += "\n\n💡 **Sugerencia:** Usa el selector de productos (escribe `predicción`) o especifica: `predecir producto [ID]`"
+                    elif self.detect_model_comparison_intent(user_input):
+                        response_content += "\n\n💡 **Sugerencia:** Prueba: `comparar todos los modelos` o `mejor modelo para producto [ID]`"
+                    
+            else:
+                response_content = self._get_fallback_response(user_input)
+        
+        # Agregar respuesta del asistente
+        assistant_message = {
+            "role": "assistant",
+            "content": response_content,
+            "timestamp": datetime.now(),
+            "backend_used": backend_status
+        }
+        st.session_state.chat_messages.append(assistant_message)
+        
+        st.rerun()
     
     def _render_message(self, message: Dict[str, Any]):
         """Renderizar un mensaje individual"""
         timestamp = message['timestamp'].strftime("%H:%M")
         
         if message['role'] == 'user':
-            st.markdown(f"""
-            <div class="stChatMessage user-message">
-                <strong>Tú ({timestamp}):</strong> {message['content']}
-            </div>
-            """, unsafe_allow_html=True)
+            with st.chat_message("user"):
+                st.markdown(f"**Tú ({timestamp}):** {message['content']}")
         else:
-            st.markdown(f"""
-            <div class="stChatMessage assistant-message">
-                <strong>Asistente ({timestamp}):</strong> {message['content']}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Si hay datos de predicción, mostrar visualización
-            if 'prediction_data' in message:
-                self._render_prediction_visualization(message['prediction_data'])
+            with st.chat_message("assistant"):
+                backend_indicator = "🟢" if message.get('backend_used', False) else "🔴"
+                st.markdown(f"**Asistente ({timestamp}) {backend_indicator}:**")
+                st.markdown(message['content'])
     
-    def _render_prediction_visualization(self, prediction_data: Dict[str, Any]):
-        """Renderizar visualización de predicción"""
-        try:
-            if not prediction_data or 'predicciones' not in prediction_data:
-                return
-            
-            # Crear gráfico simple con Plotly
-            import plotly.graph_objects as go
-            
-            predicciones = prediction_data.get('predicciones', [])
-            if not predicciones:
-                return
-                
-            dias = list(range(1, len(predicciones) + 1))
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=dias,
-                y=predicciones,
-                mode='lines+markers',
-                name='Predicción',
-                line=dict(color='#1976d2', width=3),
-                marker=dict(size=6)
-            ))
-            
-            fig.update_layout(
-                title=f"Predicción para Producto {prediction_data.get('producto_id', 'N/A')}",
-                xaxis_title="Días",
-                yaxis_title="Demanda",
-                height=400,
-                template="plotly_white"
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-        except Exception as e:
-            logger.warning(f"Error renderizando visualización: {e}")
-
-    def _process_user_message(self, user_input: str) -> str:
-        """Procesar mensaje del usuario y generar respuesta"""
+    def render_sidebar(self):
+        """Renderizar barra lateral con información y controles del chat"""
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🤖 Chat Inteligente")
         
-        # Intentar inicializar Ollama si no está disponible
-        if not self.ollama_client and OLLAMA_AVAILABLE:
-            try:
-                # Usar asyncio.run para la inicialización
-                asyncio.run(self._init_ollama_client())
-            except Exception as e:
-                logger.warning(f"No se pudo inicializar Ollama: {e}")
+        # Estado del sistema
+        backend_status = self.check_backend_connection()
         
-        # PRIMERO: Detectar si es una pregunta de seguimiento
-        if self._detect_follow_up_question(user_input):
-            logger.info(f"Pregunta de seguimiento detectada: {user_input}")
-            return self._get_contextual_response(user_input)
-        
-        # SEGUNDO: Detectar intención del usuario para nuevas consultas
-        intent = self._detect_intent(user_input)
-        
-        logger.info(f"Intent detectado: {intent} para input: {user_input}")
-        
-        # Manejar según la intención
-        if intent == 'prediction':
-            return self._handle_prediction_request(user_input)
-        elif intent == 'comparison':
-            return self._handle_model_comparison(user_input)
-        elif intent == 'analysis':
-            return self._handle_analysis_request(user_input)
-        else:  # general
-            return self._handle_general_chat(user_input)
-    
-    def _detect_intent(self, user_input: str) -> str:
-        """Detectar la intención del usuario de manera más inteligente"""
-        user_input_lower = user_input.lower()
-        
-        # Palabras clave más específicas para cada intención
-        prediction_keywords = [
-            'predecir', 'predicción', 'pronóstico', 'demanda', 'ventas futuras', 'futuro',
-            'próximos', 'días', 'semanas', 'meses', 'cuánto', 'cuántos',
-            'producto', 'cuál será', 'cuanto voy a vender', 'proyección',
-            'estimación', 'forecast', 'prever', 'proyectar'
-        ]
-        
-        # Palabras específicas para comparación (más restrictivas)
-        comparison_keywords = [
-            'comparar modelos', 'mejor modelo', 'qué modelo', 'cuál modelo',
-            'modelo más preciso', 'modelo más exacto', 'accuracy', 'precisión del modelo',
-            'performance modelo', 'rendimiento modelo', 'evaluar modelos',
-            'algoritmo mejor', 'ml accuracy', 'que modelo es mejor', 'cual modelo es mejor',
-            'modelo mejor', 'mejores modelos', 'compara modelos'
-        ]
-        
-        # Palabras para análisis de tendencias
-        analysis_keywords = [
-            'analizar tendencia', 'tendencia de ventas', 'patrón', 'insight',
-            'estudiar', 'examinar tendencia', 'revisar tendencia', 'investigar patrón',
-            'reportar tendencia', 'reporte', 'análisis histórico', 'comportamiento',
-            'categoría', 'análisis de categoría'
-        ]
-        
-        # Conversación general
-        general_keywords = [
-            'hola', 'buenos', 'buenas', 'hey', 'hi', 'hello', 'qué haces',
-            'que haces', 'gracias', 'thanks', 'ayuda', 'help', 'qué puedes',
-            'capacidades', 'como funciona', 'cómo funciona'
-        ]
-        
-        # Detección específica por frases exactas (mayor prioridad)
-        comparison_phrases = [
-            'comparar modelos', 'qué modelo', 'cuál modelo', 'mejor modelo',
-            'que modelo es mejor', 'cual modelo es mejor', 'modelo mejor',
-            'mejores modelos', 'compara modelos'
-        ]
-        
-        if any(phrase in user_input_lower for phrase in comparison_phrases):
-            return 'comparison'
-        
-        if any(phrase in user_input_lower for phrase in ['analizar tendencia', 'tendencia de', 'análisis de']):
-            return 'analysis'
-        
-        # Buscar con números de producto (indica predicción)
-        import re
-        if re.search(r'producto\s+\d+', user_input_lower) or re.search(r'\d+\s+días?', user_input_lower):
-            return 'prediction'
-        
-        if re.search(r'demanda.*producto', user_input_lower) or re.search(r'cuál será.*demanda', user_input_lower):
-            return 'prediction'
-        
-        # Contar coincidencias por categoría
-        prediction_count = sum(1 for keyword in prediction_keywords if keyword in user_input_lower)
-        comparison_count = sum(1 for keyword in comparison_keywords if keyword in user_input_lower)
-        analysis_count = sum(1 for keyword in analysis_keywords if keyword in user_input_lower)
-        general_count = sum(1 for keyword in general_keywords if keyword in user_input_lower)
-        
-        # Decidir basado en la mayor cantidad de coincidencias
-        counts = {
-            'prediction': prediction_count,
-            'comparison': comparison_count,
-            'analysis': analysis_count,
-            'general': general_count
-        }
-        
-        max_count = max(counts.values())
-        if max_count == 0:
-            return 'general'  # Si no hay coincidencias claras, asumir conversación general
-        
-        # Retornar la intención con más coincidencias
-        for intent, count in counts.items():
-            if count == max_count:
-                return intent
-        
-        return 'general'
-    
-    def _extract_product_id(self, user_input: str) -> int:
-        """Extraer ID de producto del input del usuario"""
-        import re
-        
-        # Buscar patrones como "producto 1", "producto X", etc.
-        product_match = re.search(r'producto\s+(\d+)', user_input.lower())
-        if product_match:
-            return int(product_match.group(1))
-        
-        # Buscar números directos en el texto
-        number_match = re.search(r'\b(\d+)\b', user_input)
-        if number_match:
-            return int(number_match.group(1))
-        
-        # Si no encuentra un ID específico, usar un ID por defecto basado en contexto
-        user_lower = user_input.lower()
-        if 'ropa' in user_lower or 'textil' in user_lower:
-            return 1
-        elif 'electronica' in user_lower or 'computadora' in user_lower:
-            return 2
-        elif 'comida' in user_lower or 'alimento' in user_lower:
-            return 3
-        elif 'hogar' in user_lower or 'casa' in user_lower:
-            return 4
-        elif 'deporte' in user_lower or 'fitness' in user_lower:
-            return 5
+        st.sidebar.subheader("🔗 Estado del Sistema")
+        if backend_status:
+            st.sidebar.success("✅ Backend conectado")
+            st.sidebar.info("🎯 Todas las funciones disponibles")
         else:
-            return 1  # ID por defecto
-
-    def _save_tool_result(self, tool_type: str, result_data: Dict[str, Any], user_input: str):
-        """Guardar resultados de herramientas para contexto futuro"""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.sidebar.error("❌ Backend desconectado")
+            st.sidebar.warning("⚠️ Funciones limitadas")
         
-        if tool_type == 'prediction':
-            prediction_summary = {
-                'timestamp': timestamp,
-                'user_query': user_input,
-                'producto_id': result_data.get('producto_id', 'N/A'),
-                'prediccion_promedio': result_data.get('predicciones', [0])[-1] if result_data.get('predicciones') else 0,
-                'modelo_usado': result_data.get('mejor_modelo', 'N/A'),
-                'confianza': result_data.get('confianza', 0),
-                'tendencia': result_data.get('trend_type', 'N/A'),
-                'raw_data': result_data
-            }
-            st.session_state.tool_results['recent_predictions'].append(prediction_summary)
-            # Mantener solo las últimas 3
-            if len(st.session_state.tool_results['recent_predictions']) > 3:
-                st.session_state.tool_results['recent_predictions'].pop(0)
+        st.sidebar.markdown("---")
         
-        elif tool_type == 'comparison':
-            comparison_summary = {
-                'timestamp': timestamp,
-                'user_query': user_input,
-                'mejor_modelo': result_data.get('best_model', 'Random Forest'),
-                'r2_scores': result_data.get('r2_scores', {}),
-                'conclusion': result_data.get('conclusion', 'Comparación realizada'),
-                'raw_data': result_data
-            }
-            st.session_state.tool_results['recent_comparisons'].append(comparison_summary)
-            # Mantener solo las últimas 2
-            if len(st.session_state.tool_results['recent_comparisons']) > 2:
-                st.session_state.tool_results['recent_comparisons'].pop(0)
+        # Comandos rápidos
+        st.sidebar.subheader("⚡ Comandos Rápidos")
         
-        elif tool_type == 'analysis':
-            analysis_summary = {
-                'timestamp': timestamp,
-                'user_query': user_input,
-                'tipo_analisis': result_data.get('analysis_type', 'general'),
-                'categoria': result_data.get('category', 'N/A'),
-                'insights': result_data.get('insights', []),
-                'raw_data': result_data
-            }
-            st.session_state.tool_results['recent_analysis'].append(analysis_summary)
-            # Mantener solo las últimas 2
-            if len(st.session_state.tool_results['recent_analysis']) > 2:
-                st.session_state.tool_results['recent_analysis'].pop(0)
+        if st.sidebar.button("📦 Productos disponibles"):
+            self._send_quick_command("productos disponibles")
         
-        # Actualizar último resultado
-        st.session_state.tool_results['last_action'] = tool_type
-        st.session_state.tool_results['last_results'] = result_data
-
-    def _detect_follow_up_question(self, user_input: str) -> bool:
-        """Detectar si es una pregunta de seguimiento sobre resultados anteriores"""
-        follow_up_patterns = [
-            'qué puedes decir al respecto',
-            'qué opinas sobre esto',
-            'qué significa esto',
-            'explícame esto',
-            'analiza esto',
-            'interpreta esto',
-            'qué conclusiones',
-            'qué recomendaciones',
-            'basándote en esto',
-            'sobre estos resultados',
-            'sobre esta información',
-            'que me dices de',
-            'cómo interpretas',
-            'qué piensas',
-            'ejecuta el comando',
-            'ejecuta eso',
-            'hazlo',
-            'ejecutalo',
-            'realiza el comando',
-            'corre el comando',
-            'ejecuta para ver',
-            'muestra el resultado',
-            'dame los resultados'
-        ]
+        if st.sidebar.button("🎯 Selector de Productos"):
+            st.session_state.show_product_selector = True
+            st.rerun()
         
-        user_lower = user_input.lower()
-        return any(pattern in user_lower for pattern in follow_up_patterns)
-
-    def _get_contextual_response(self, user_input: str) -> str:
-        """Generar respuesta contextual basada en resultados anteriores"""
-        last_action = st.session_state.tool_results.get('last_action')
-        last_results = st.session_state.tool_results.get('last_results')
+        if st.sidebar.button("📊 Inventario general"):
+            self._send_quick_command("inventario general")
         
-        user_lower = user_input.lower()
+        if st.sidebar.button("💰 Ventas del mes"):
+            self._send_quick_command("ventas del mes")
         
-        # Si el usuario pide ejecutar algo y no hay contexto previo, ejecutar herramienta apropiada
-        if any(cmd in user_lower for cmd in ['ejecuta', 'ejecutalo', 'hazlo', 'muestra', 'realiza']):
-            # Determinar qué ejecutar basado en el contexto de mensajes anteriores
-            recent_messages = st.session_state.messages[-3:] if len(st.session_state.messages) >= 3 else st.session_state.messages
-            
-            for msg in reversed(recent_messages):
-                if msg['role'] == 'user':
-                    # Si el mensaje anterior mencionaba comparación
-                    if any(word in msg['content'].lower() for word in ['modelo', 'comparar', 'mejor', 'preciso']):
-                        return self._handle_model_comparison(f"comparar modelos para {msg['content']}")
-                    # Si mencionaba análisis de categoría
-                    elif any(word in msg['content'].lower() for word in ['ropa', 'tendencia', 'espera', 'categoria']):
-                        return self._handle_analysis_request(msg['content'])
-                    # Si mencionaba predicción
-                    elif any(word in msg['content'].lower() for word in ['predic', 'demanda', 'futuro', 'venta']):
-                        return self._handle_prediction_request(msg['content'])
+        if st.sidebar.button("🤖 Comparar Modelos ML"):
+            self._send_quick_command("comparar todos los modelos")
         
-        # Si hay contexto previo, analizarlo
-        if not last_action or not last_results:
-            return self._get_intelligent_fallback(user_input)
+        if st.sidebar.button("📈 Análisis de negocio"):
+            self._send_quick_command("cómo va mi negocio")
         
-        if last_action == 'comparison':
-            return self._analyze_model_comparison_context(user_input, last_results)
-        elif last_action == 'prediction':
-            return self._analyze_prediction_context(user_input, last_results)
-        elif last_action == 'analysis':
-            return self._analyze_analysis_context(user_input, last_results)
+        if st.sidebar.button("❓ Ayuda"):
+            self._send_quick_command("ayuda")
         
-        return self._get_intelligent_fallback(user_input)
-
-    def _analyze_model_comparison_context(self, user_input: str, comparison_data: Dict) -> str:
-        """Analizar y explicar resultados de comparación de modelos"""
-        try:
-            # Obtener el último resultado de comparación
-            recent_comp = st.session_state.tool_results['recent_comparisons'][-1] if st.session_state.tool_results['recent_comparisons'] else None
-            
-            if not recent_comp:
-                return "No encontré resultados de comparación recientes para analizar."
-            
-            response = f"""
-            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #7b1fa2; color: #000000;">
-            
-            ## 🤔 Análisis de la Comparación de Modelos
-            
-            **Basándome en tu pregunta:** "{user_input}"
-            
-            ### 🎯 Interpretación de Resultados
-            
-            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50; color: #1b5e20; font-weight: 600;">
-            🏆 **Modelo Ganador:** {recent_comp['mejor_modelo']}
-            </div>
-            
-            ### 📊 ¿Qué significan estos números?
-            
-            **R² Score (Coeficiente de Determinación):**
-            - 📈 Mide qué tan bien el modelo explica la variabilidad de tus datos
-            - 🎯 Rango: 0.0 (terrible) a 1.0 (perfecto)
-            - ✅ **Mayor R² = Mejor predicción**
-            
-            **MSE (Error Cuadrático Medio):**
-            - 📉 Promedio de errores al cuadrado
-            - 🎯 **Menor MSE = Mejor precisión**
-            
-            **MAE (Error Absoluto Medio):**
-            - 📊 Error promedio sin elevar al cuadrado
-            - 🎯 **Menor MAE = Predicciones más cercanas**
-            
-            ### 💡 Recomendaciones Prácticas
-            
-            <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
-            🚀 **Para tu negocio:** El {recent_comp['mejor_modelo']} te dará las predicciones más confiables
-            </div>
-            
-            **Próximos pasos sugeridos:**
-            1. 📊 Usa el {recent_comp['mejor_modelo']} para predicciones futuras
-            2. 🔄 Re-evalúa mensualmente con nuevos datos
-            3. 📈 Monitora la precisión en la práctica
-            
-            ### 🤖 ¿Quieres que realice algún análisis específico?
-            
-            Puedo ayudarte con:
-            - 📊 Predicción de demanda usando el mejor modelo
-            - 📈 Análisis de tendencias específicas
-            - 🎯 Recomendaciones personalizadas para tu inventario
-            
-            </div>
-            """
-            
-            return response
-            
-        except Exception as e:
-            return f"Error analizando la comparación: {str(e)}"
-
-    def _analyze_prediction_context(self, user_input: str, prediction_data: Dict) -> str:
-        """Analizar y explicar resultados de predicción"""
-        try:
-            recent_pred = st.session_state.tool_results['recent_predictions'][-1] if st.session_state.tool_results['recent_predictions'] else None
-            
-            if not recent_pred:
-                return "No encontré predicciones recientes para analizar."
-            
-            response = f"""
-            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #1976d2; color: #000000;">
-            
-            ## 📊 Análisis de tu Predicción de Demanda
-            
-            **Respondiendo a:** "{user_input}"
-            
-            ### 🎯 Resumen de Resultados
-            
-            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #1976d2; color: #0d47a1; font-weight: 600;">
-            📦 **Producto {recent_pred['producto_id']}:** {recent_pred['prediccion_promedio']:.1f} unidades promedio
-            </div>
-            
-            ### 🔍 Interpretación Detallada
-            
-            **Confianza del Modelo:**
-            - 🎯 **{recent_pred['confianza']:.1%}** de confianza en la predicción
-            - 🤖 Modelo usado: **{recent_pred['modelo_usado']}**
-            - 📈 Tendencia detectada: **{recent_pred['tendencia']}**
-            
-            ### 💡 ¿Qué significa para tu negocio?
-            
-            **Planificación de Inventario:**
-            """
-            
-            # Agregar recomendaciones basadas en la predicción
-            prediccion = recent_pred['prediccion_promedio']
-            if prediccion > 100:
-                response += """
-            <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ff9800; color: #e65100; font-weight: 600;">
-            🔥 **Alta demanda proyectada** - Considera aumentar tu inventario
-            </div>
-            """
-            elif prediccion > 50:
-                response += """
-            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50; color: #1b5e20; font-weight: 600;">
-            ✅ **Demanda moderada** - Mantén niveles de stock normales
-            </div>
-            """
-            else:
-                response += """
-            <div style="background-color: #fce4ec; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #e91e63; color: #880e4f; font-weight: 600;">
-            📉 **Demanda baja** - Evalúa promociones o reducir inventario
-            </div>
-            """
-            
-            response += f"""
-            ### 📋 Acciones Recomendadas
-            
-            1. 📊 **Stock óptimo:** {prediccion * 1.2:.0f} unidades (20% buffer)
-            2. 🔄 **Punto de reorden:** {prediccion * 0.3:.0f} unidades
-            3. 📅 **Próxima revisión:** En 1 semana
-            
-            ### 🤖 ¿Te ayudo con algo más?
-            
-            Puedo ayudarte a:
-            - 🔍 Comparar con otros productos
-            - 📈 Analizar tendencias históricas
-            - 💰 Calcular rentabilidad proyectada
-            
-            </div>
-            """
-            
-            return response
-            
-        except Exception as e:
-            return f"Error analizando la predicción: {str(e)}"
-
-    def _analyze_analysis_context(self, user_input: str, analysis_data: Dict) -> str:
-        """Analizar y explicar resultados de análisis general"""
-        try:
-            recent_analysis = st.session_state.tool_results['recent_analysis'][-1] if st.session_state.tool_results['recent_analysis'] else None
-            
-            if not recent_analysis:
-                return "No encontré análisis recientes para interpretar."
-            
-            response = f"""
-            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #ff9800; color: #000000;">
-            
-            ## 📈 Interpretación del Análisis
-            
-            **Tu consulta:** "{user_input}"
-            
-            ### 🎯 Resumen del Análisis Realizado
-            
-            <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ff9800; color: #e65100; font-weight: 600;">
-            📊 **Tipo:** {recent_analysis['tipo_analisis']} | **Categoría:** {recent_analysis['categoria']}
-            </div>
-            
-            ### 💡 Insights Clave
-            """
-            
-            for insight in recent_analysis.get('insights', [])[:3]:  # Mostrar máximo 3
-                response += f"""
-            - 🎯 {insight}
-            """
-            
-            response += """
-            
-            ### 🚀 Próximos Pasos Sugeridos
-            
-            1. 📊 Monitorear tendencias identificadas
-            2. 🔄 Ajustar estrategias según insights
-            3. 📈 Revisar resultados en 2 semanas
-            
-            ### 🤖 ¿Necesitas más detalles?
-            
-            Puedo profundizar en:
-            - 📊 Análisis específicos por producto
-            - 🔍 Comparaciones detalladas
-            - 💡 Recomendaciones personalizadas
-            
-            </div>
-            """
-            
-            return response
-            
-        except Exception as e:
-            return f"Error analizando el análisis: {str(e)}"
-
-    def _handle_prediction_request(self, user_input: str) -> str:
-        """Manejar solicitud de predicción"""
-        try:
-            # Extraer parámetros de la sesión
-            product_id = self._extract_product_id(user_input)
-            
-            # Crear petición (formato compatible con backend)
-            request_data = {
-                "producto_id": product_id,
-                "dias_adelante": st.session_state.get('prediction_days', 30),
-                "include_confidence": True,
-                "use_cache": True
-            }
-            
-            # Intentar llamar al backend
-            try:
-                response = requests.post(
-                    f"{self.backend_url}/api/predict/demanda",
-                    json=request_data,
-                    timeout=5  # Timeout corto para demo
-                )
-                
-                if response.status_code == 200:
-                    prediction_data = response.json()
-                    
-                    # Guardar en historial
-                    st.session_state.prediction_history.append({
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "confidence": prediction_data.get('confianza', 0),
-                        "model": prediction_data.get('mejor_modelo', 'unknown'),
-                        "data": prediction_data
-                    })
-                    
-                    # Guardar resultado para contexto futuro
-                    self._save_tool_result('prediction', prediction_data, user_input)
-                    
-                    # Generar respuesta interpretativa
-                    return self._generate_prediction_interpretation(prediction_data, user_input)
-                else:
-                    # Backend responde pero hay error, usar datos simulados
-                    return self._generate_demo_prediction(product_id, user_input)
-                    
-            except (requests.RequestException, requests.Timeout):
-                # Backend no disponible, usar datos simulados
-                return self._generate_demo_prediction(product_id, user_input)
-                
-        except Exception as e:
-            return f"Error procesando predicción: {str(e)}"
+        st.sidebar.markdown("---")
+        
+        # Ejemplos de comandos
+        st.sidebar.subheader("💡 Ejemplos de Comandos")
+        st.sidebar.markdown("""
+        **🎯 Predicciones Inteligentes:**
+        • `predicción` - Abre selector interactivo
+        • `predecir producto 1`
+        • `demanda producto 2 próximos 15 días`
+        • `comparar modelos para producto 1`
+        
+        **📦 Inventario:**
+        • `inventario producto 1`
+        • `inventario general`
+        • `productos con stock bajo`
+        
+        **💰 Ventas y Análisis:**
+        • `ventas del mes`
+        • `análisis de tendencias`
+        • `cómo va mi negocio`
+        
+        **🤖 Modelos ML:**
+        • `comparar todos los modelos`
+        • `qué modelo es mejor`
+        • `precisión de modelos`
+        
+        **📋 General:**
+        • `productos disponibles`
+        • `proveedores`
+        • `categorías disponibles`
+        """)
+        
+        st.sidebar.markdown("---")
+        
+        # Configuración avanzada
+        st.sidebar.subheader("⚙️ Configuración")
+        
+        # Días para predicción
+        prediction_days = st.sidebar.slider(
+            "📅 Días a predecir",
+            min_value=7,
+            max_value=90,
+            value=30,
+            step=7,
+            help="Número de días hacia el futuro para las predicciones"
+        )
+        
+        # Guardar en session state
+        st.session_state.prediction_days = prediction_days
+        
+        # Incluir intervalos de confianza
+        include_confidence = st.sidebar.checkbox(
+            "📊 Incluir intervalos de confianza",
+            value=True,
+            help="Mostrar rangos de confianza en las predicciones"
+        )
+        st.session_state.include_confidence = include_confidence
+        
+        st.sidebar.markdown("---")
+        
+        # Información de la sesión
+        st.sidebar.subheader("ℹ️ Información del Chat")
+        st.sidebar.text(f"Sesión: {self.session_id[:8]}...")
+        st.sidebar.text(f"Mensajes: {len(st.session_state.chat_messages)}")
+        
+        # Limpiar chat
+        if st.sidebar.button("🗑️ Limpiar Chat"):
+            st.session_state.chat_messages = []
+            st.rerun()
     
-    def _generate_demo_prediction(self, product_id: int, user_input: str) -> str:
-        """Generar predicción de demostración cuando el backend no está disponible"""
-        import numpy as np
-        import hashlib
-        
-        # Usar hash del input para generar datos únicos pero consistentes
-        seed_value = int(hashlib.md5(f"{product_id}_{user_input}".encode()).hexdigest()[:8], 16) % 10000
-        np.random.seed(seed_value)
-        
-        days = st.session_state.get('prediction_days', 30)
-        
-        # Crear predicción simulada más variada
-        base_demand = 30 + (product_id % 20) * 5 + np.random.randint(-10, 20)
-        
-        # Diferentes tipos de tendencia basados en el producto
-        trend_types = ['creciente', 'decreciente', 'estacional', 'estable']
-        trend_type = trend_types[product_id % 4]
-        
-        predicted_values = []
-        for i in range(days):
-            if trend_type == 'creciente':
-                trend_value = base_demand + (i * 0.5) + np.random.normal(0, 2)
-            elif trend_type == 'decreciente':
-                trend_value = base_demand - (i * 0.3) + np.random.normal(0, 2)
-            elif trend_type == 'estacional':
-                # Patrón semanal
-                seasonal = 15 * np.sin(2 * np.pi * i / 7) + 5 * np.cos(2 * np.pi * i / 14)
-                trend_value = base_demand + seasonal + np.random.normal(0, 3)
-            else:  # estable
-                trend_value = base_demand + np.random.normal(0, 4)
-            
-            value = max(1, int(trend_value))
-            predicted_values.append(value)
-        
-        # Calcular métricas más realistas
-        avg_demand = np.mean(predicted_values)
-        trend = trend_type
-        
-        # Confidence basada en tipo de tendencia
-        confidence_base = {
-            'estable': 0.85,
-            'creciente': 0.78,
-            'decreciente': 0.72,
-            'estacional': 0.68
+    def _send_quick_command(self, command: str):
+        """Enviar comando rápido"""
+        # Agregar comando como mensaje del usuario
+        user_message = {
+            "role": "user",
+            "content": command,
+            "timestamp": datetime.now()
         }
+        st.session_state.chat_messages.append(user_message)
         
-        confidence = confidence_base[trend_type] + np.random.uniform(-0.08, 0.08)
-        confidence = max(0.6, min(0.95, confidence))
+        # Procesar comando
+        backend_status = self.check_backend_connection()
         
-        # Seleccionar modelo basado en tendencia
-        model_selection = {
-            'estable': 'linear',
-            'creciente': 'linear', 
-            'decreciente': 'polynomial',
-            'estacional': 'random_forest'
+        if backend_status:
+            response_data = self.send_message_to_backend(command)
+            response_content = response_data.get('response', 'Error procesando comando')
+        else:
+            response_content = self._get_fallback_response(command)
+        
+        # Agregar respuesta
+        assistant_message = {
+            "role": "assistant",
+            "content": response_content,
+            "timestamp": datetime.now(),
+            "backend_used": backend_status
         }
+        st.session_state.chat_messages.append(assistant_message)
         
-        selected_model = model_selection[trend_type]
-        
-        prediction_data = {
-            'predicciones': predicted_values,
-            'confianza': confidence,
-            'mejor_modelo': selected_model,
-            'dias_adelante': days,
-            'producto_id': product_id,
-            'trend_type': trend_type
-        }
-        
-        # Guardar resultados en el contexto de herramientas
-        self._save_tool_result('prediction', prediction_data, user_input)
-        
-        # Guardar en historial
-        st.session_state.prediction_history.append({
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "confidence": confidence,
-            "model": selected_model,
-            "trend": trend_type,
-            "data": prediction_data
-        })
-        
-        # Agregar nota de demostración
-        demo_note = "📍 **Modo Demo**: Datos simulados (backend en desarrollo)"
-        interpretation = self._generate_prediction_interpretation(prediction_data, user_input)
-        
-        return f"{demo_note}\n\n{interpretation}"
-
-    def _generate_prediction_interpretation(self, prediction_data: Dict[str, Any], user_input: str) -> str:
-        """Generar interpretación detallada de la predicción"""
-        try:
-            product_id = prediction_data.get('producto_id', 'N/A')
-            predictions = prediction_data.get('predicciones', [])
-            confidence = prediction_data.get('confianza', 0)
-            model = prediction_data.get('mejor_modelo', 'unknown')
-            trend_type = prediction_data.get('trend_type', 'unknown')
-            days = prediction_data.get('dias_adelante', 30)
-            
-            if not predictions:
-                return "No se pudieron generar predicciones para este producto."
-            
-            avg_demand = sum(predictions) / len(predictions)
-            max_demand = max(predictions)
-            min_demand = min(predictions)
-            
-            # Determinar tendencia visual
-            if len(predictions) >= 7:
-                early_avg = sum(predictions[:7]) / 7
-                late_avg = sum(predictions[-7:]) / 7
-                trend_direction = "creciente" if late_avg > early_avg * 1.1 else "decreciente" if late_avg < early_avg * 0.9 else "estable"
-            else:
-                trend_direction = trend_type
-            
-            response = f"""
-            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #1976d2; color: #000000;">
-            
-            ## 📊 Predicción de Demanda - Producto {product_id}
-            
-            **Consulta:** "{user_input}"
-            
-            ### 🎯 Resumen Ejecutivo
-            
-            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #1976d2; color: #0d47a1; font-weight: 600;">
-            📦 **Demanda promedio**: {avg_demand:.1f} unidades diarias
-            </div>
-            
-            ### 📈 Métricas Clave
-            
-            - 🎯 **Confianza del modelo**: {confidence:.1%}
-            - 🤖 **Modelo utilizado**: {model.title()}
-            - 📊 **Período analizado**: {days} días
-            - 📈 **Tendencia**: {trend_direction.title()}
-            - 📊 **Rango**: {min_demand:.0f} - {max_demand:.0f} unidades
-            
-            ### 💡 Interpretación de Resultados
-            
-            """
-            
-            # Recomendaciones basadas en la demanda promedio
-            if avg_demand > 100:
-                response += """
-            <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ff9800; color: #e65100; font-weight: 600;">
-            🔥 **Alta Demanda Proyectada** - Este producto muestra excelente potencial de ventas
-            </div>
-            
-            **Estrategia recomendada:**
-            - 📈 **Aumentar inventario** inmediatamente
-            - 🎯 **Stock objetivo**: {int(avg_demand * 1.5):.0f} unidades diarias
-            - 🔄 **Punto de reorden**: {int(avg_demand * 0.7):.0f} unidades
-            """
-            elif avg_demand > 50:
-                response += """
-            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50; color: #1b5e20; font-weight: 600;">
-            ✅ **Demanda Moderada** - Mantén niveles de stock normales
-            </div>
-            
-            **Estrategia recomendada:**
-            - 📊 **Mantener niveles actuales** de inventario
-            - 🎯 **Stock objetivo**: {int(avg_demand * 1.3):.0f} unidades diarias
-            - 🔄 **Punto de reorden**: {int(avg_demand * 0.5):.0f} unidades
-            """
-            else:
-                response += """
-            <div style="background-color: #fce4ec; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #e91e63; color: #880e4f; font-weight: 600;">
-            📉 **Demanda Baja** - Evalúa promociones o reducir inventario
-            </div>
-            
-            **Estrategia recomendada:**
-            - 🎯 **Evaluar promociones** o descuentos
-            - 📦 **Reducir inventario** gradualmente
-            - 🔍 **Investigar** factores que afectan la demanda
-            """
-            
-            # Recomendaciones basadas en tendencia
-            if trend_direction == "creciente":
-                response += """
-            - 📈 **Tendencia creciente**: Prepárate para mayor demanda
-            - 🚀 **Oportunidad**: Considera expandir la línea de productos similares
-            """
-            elif trend_direction == "decreciente":
-                response += """
-            - 📉 **Tendencia decreciente**: Ajusta estrategias de marketing
-            - 🔄 **Acción**: Evalúa factores estacionales o competencia
-            """
-            else:
-                response += """
-            - 📊 **Tendencia estable**: Demanda predecible y confiable
-            - ✅ **Ventaja**: Fácil planificación de inventario
-            """
-            
-            response += f"""
-            
-            ### 📋 Plan de Acción Recomendado
-            
-            1. **📊 Monitoreo semanal** de las ventas reales vs predicción
-            2. **🔄 Ajuste de inventario** según la tendencia observada
-            3. **📅 Revisión en 2 semanas** para evaluar precisión del modelo
-            4. **🎯 Optimización** basada en los resultados obtenidos
-            
-            ### 🤖 ¿Necesitas más análisis?
-            
-            Puedo ayudarte con:
-            - 🔍 **Comparar con otros productos** de tu inventario
-            - 📈 **Analizar tendencias** por categoría
-            - 💰 **Calcular rentabilidad** proyectada
-            
-            </div>
-            """
-            
-            return response
-            
-        except Exception as e:
-            return f"Error generando interpretación de predicción: {str(e)}"
-
-    def _generate_comparison_interpretation(self, comparison_data: Dict[str, Any], user_input: str) -> str:
-        """Generar interpretación detallada de la comparación de modelos"""
-        try:
-            response = f"""
-            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #7b1fa2; color: #000000;">
-            
-            ## 🔍 Análisis Detallado de Comparación de Modelos
-            
-            **Consulta:** "{user_input}"
-            
-            ### 🏆 Resultado de la Comparación
-            
-            Basándome en los datos de rendimiento, he evaluado los siguientes modelos de Machine Learning:
-            
-            """
-            
-            # Si hay datos específicos de comparación, usarlos
-            if comparison_data and 'models' in comparison_data:
-                for model_name, metrics in comparison_data['models'].items():
-                    response += f"""
-            **🤖 {model_name.title()}:**
-            - R² Score: {metrics.get('r2', 0):.3f}
-            - MSE: {metrics.get('mse', 0):.3f}  
-            - MAE: {metrics.get('mae', 0):.3f}
-            """
-            
-            response += """
-            
-            ### 📊 ¿Qué significan estas métricas?
-            
-            **R² Score (Coeficiente de Determinación):**
-            - 📈 Mide qué tan bien explica el modelo la variabilidad de tus datos
-            - 🎯 Rango: 0.0 (malo) a 1.0 (perfecto)
-            - ✅ **Mayor R² = Mejor capacidad predictiva**
-            
-            **MSE (Error Cuadrático Medio):**
-            - 📉 Penaliza más los errores grandes
-            - 🎯 **Menor MSE = Mayor precisión**
-            
-            **MAE (Error Absoluto Medio):**
-            - 📊 Error promedio en términos absolutos
-            - 🎯 **Menor MAE = Predicciones más cercanas**
-            
-            ### 💡 Recomendación para tu Negocio
-            
-            <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
-            🚀 **Usa el modelo con mayor R²** para tus predicciones futuras
-            </div>
-            
-            ### 🎯 Guía de Selección por Caso de Uso
-            
-            - **Linear**: ⚡ Ideal para tendencias simples y respuesta rápida
-            - **Polynomial**: 🔄 Mejor para patrones con curvas y estacionalidad
-            - **Random Forest**: 🎯 Máxima precisión para datos complejos
-            
-            ### 📋 Próximos Pasos Sugeridos
-            
-            1. **📊 Implementar** el modelo recomendado en tus predicciones
-            2. **🔄 Monitorear** la precisión en datos reales durante 2 semanas
-            3. **📈 Re-evaluar** mensualmente con datos nuevos
-            4. **🎯 Ajustar** si la precisión baja del 80%
-            
-            </div>
-            """
-            
-            return response
-            
-        except Exception as e:
-            return f"Error generando interpretación de comparación: {str(e)}"
-
-    def _handle_model_comparison(self, user_input: str) -> str:
-        """Manejar comparación de modelos con fallback inteligente"""
-        try:
-            # Intentar obtener comparación del backend
-            comparison_id = f"comp_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            
-            response = requests.get(
-                f"{self.backend_url}/api/predict/models/comparison/{comparison_id}",
-                timeout=5  # Timeout corto
-            )
-            
-            if response.status_code == 200:
-                comparison_data = response.json()
-                
-                # Guardar resultado para contexto futuro
-                self._save_tool_result('comparison', comparison_data, user_input)
-                
-                return self._generate_comparison_interpretation(comparison_data, user_input)
-            else:
-                # Si falla el backend, generar comparación simulada
-                return self._generate_demo_comparison(user_input)
-                
-        except Exception as e:
-            logger.warning(f"Error en comparación del backend: {e}")
-            return self._generate_demo_comparison(user_input)
-
-    def _generate_demo_comparison(self, user_input: str) -> str:
-        """Generar comparación de modelos simulada"""
-        import numpy as np
-        
-        # Datos simulados de comparación
-        models_comparison = {
-            'linear': {
-                'mse': np.random.uniform(0.15, 0.25),
-                'r2': np.random.uniform(0.75, 0.85),
-                'mae': np.random.uniform(0.12, 0.18),
-                'speed': 'Muy rápido',
-                'complexity': 'Baja'
-            },
-            'polynomial': {
-                'mse': np.random.uniform(0.10, 0.20),
-                'r2': np.random.uniform(0.80, 0.90),
-                'mae': np.random.uniform(0.08, 0.15),
-                'speed': 'Moderado',
-                'complexity': 'Media'
-            },
-            'random_forest': {
-                'mse': np.random.uniform(0.08, 0.15),
-                'r2': np.random.uniform(0.85, 0.95),
-                'mae': np.random.uniform(0.06, 0.12),
-                'speed': 'Lento',
-                'complexity': 'Alta'
-            }
-        }
-        
-        # Encontrar el mejor modelo por R²
-        best_model = max(models_comparison.keys(), key=lambda k: models_comparison[k]['r2'])
-        
-        # Guardar resultados en el contexto
-        comparison_result = {
-            'best_model': best_model.replace('_', ' ').title(),
-            'r2_scores': {k: v['r2'] for k, v in models_comparison.items()},
-            'models_data': models_comparison,
-            'conclusion': f"{best_model.replace('_', ' ').title()} es el más preciso"
-        }
-        self._save_tool_result('comparison', comparison_result, user_input)
-        
-        interpretation = f"""
-        <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; color: #000000;">
-        
-        ## 🔍 Comparación de Modelos de ML
-        
-        **Basándome en tu consulta:** "{user_input}"
-        
-        ### 🏆 Modelo Recomendado: **{best_model.replace('_', ' ').title()}**
-        
-        ### 📊 Resultados Detallados
-        
-        """
-        
-        for model, metrics in models_comparison.items():
-            model_name = model.replace('_', ' ').title()
-            r2_color = "#1b5e20" if metrics['r2'] > 0.85 else "#f57c00" if metrics['r2'] > 0.75 else "#d32f2f"
-            
-            interpretation += f"""
-        **🤖 {model_name}:**
-        - **R² Score**: <span style="color: {r2_color}; font-weight: bold; background-color: #f5f5f5; padding: 2px 6px; border-radius: 4px;">{metrics['r2']:.3f}</span>
-        - **MSE**: <span style="color: #000000; font-weight: bold;">{metrics['mse']:.3f}</span>
-        - **MAE**: <span style="color: #000000; font-weight: bold;">{metrics['mae']:.3f}</span>
-        - **Velocidad**: <span style="color: #4a148c; font-weight: bold;">{metrics['speed']}</span>
-        - **Complejidad**: <span style="color: #4a148c; font-weight: bold;">{metrics['complexity']}</span>
-        
-        """
-        
-        interpretation += f"""
-        ### 💡 Recomendaciones
-        
-        <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50; color: #1b5e20; font-weight: 600;">
-        🎯 **Mejor opción:** {best_model.replace('_', ' ').title()} con R² de {models_comparison[best_model]['r2']:.3f}
-        </div>
-        
-        <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
-        📈 **Criterio de selección:** Mayor R² indica mejor capacidad predictiva
-        </div>
-        
-        ### 📋 Guía de Selección:
-        - **Linear**: Ideal para tendencias simples y predicciones rápidas
-        - **Polynomial**: Mejor para patrones más complejos
-        - **Random Forest**: Máxima precisión para datos complejos
-        
-        </div>
-        """
-        
-        return interpretation
+        st.rerun()
     
-    def _handle_analysis_request(self, user_input: str) -> str:
-        """Manejar solicitud de análisis con capacidades mejoradas"""
-        
-        # Extraer información de la consulta
-        category = self._extract_category_from_input(user_input)
-        
-        if category:
-            return self._generate_category_analysis(category, user_input)
-        else:
-            return self._generate_general_analysis(user_input)
-    
-    def _extract_category_from_input(self, user_input: str) -> str:
-        """Extraer categoría de producto del input del usuario"""
-        user_input_lower = user_input.lower()
-        
-        categories = {
-            'electronica': ['electronica', 'electronics', 'computadora', 'telefono', 'gadget'],
-            'ropa': ['ropa', 'clothing', 'vestimenta', 'textil', 'fashion'],
-            'comida': ['comida', 'food', 'alimento', 'bebida', 'restaurant'],
-            'hogar': ['hogar', 'casa', 'home', 'domestico'],
-            'deportes': ['deporte', 'sport', 'fitness', 'ejercicio'],
-            'salud': ['salud', 'health', 'medicina', 'farmacia'],
-            'belleza': ['belleza', 'beauty', 'cosmético', 'cuidado personal']
-        }
-        
-        for category, keywords in categories.items():
-            if any(keyword in user_input_lower for keyword in keywords):
-                return category
-        
-        return 'general'
-
-    def _generate_category_analysis(self, category: str, user_input: str) -> str:
-        """Generar análisis específico por categoría"""
-        import numpy as np
-        
-        # Generar datos simulados para la categoría
-        np.random.seed(hash(category) % 1000)
-        
-        # Simular tendencias de los últimos 6 meses
-        months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio']
-        base_sales = 1000 + hash(category) % 500
-        
-        monthly_data = []
-        for i, month in enumerate(months):
-            # Tendencia creciente con variación
-            trend_factor = 1 + (i * 0.1) + np.random.uniform(-0.05, 0.05)
-            sales = int(base_sales * trend_factor)
-            monthly_data.append({'month': month, 'sales': sales})
-        
-        # Calcular insights
-        total_sales = sum(data['sales'] for data in monthly_data)
-        avg_growth = (monthly_data[-1]['sales'] - monthly_data[0]['sales']) / monthly_data[0]['sales'] * 100
-        
-        response = f"""
-        <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #ff9800; color: #000000;">
-        
-        ## 📈 Análisis de Tendencias - Categoría: {category.title()}
-        
-        **📍 Modo Demo**: Datos simulados para demostración
-        
-        ### 📊 Resumen Ejecutivo
-        
-        <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ff9800; color: #e65100; font-weight: 600;">
-        📈 **Crecimiento promedio:** {avg_growth:.1f}% en los últimos 6 meses
-        </div>
-        
-        ### 📅 Tendencias Mensuales Recientes
-        
-        """
-        
-        for data in monthly_data[-3:]:  # Últimos 3 meses
-            response += f"- **{data['month']}**: {data['sales']:,} unidades vendidas\n"
-        
-        response += f"""
-        
-        ### 💡 Insights Clave para {category.title()}
-        
-        - 🎯 **Demanda estacional**: {category.title()} muestra patrones predecibles
-        - 📊 **Volumen total**: {total_sales:,} unidades en 6 meses  
-        - 🔄 **Estrategia**: {"📈 Aumentar inventario - tendencia creciente" if avg_growth > 5 else "📊 Mantener niveles actuales - demanda estable"}
-        - 💰 **Oportunidad**: {"Alto potencial de crecimiento" if avg_growth > 10 else "Mercado estable y confiable"}
-        
-        ### 🚀 Recomendaciones Específicas
-        
-        1. **📊 Stock óptimo**: {int(monthly_data[-1]['sales'] * 1.3):,} unidades (30% buffer)
-        2. **🎯 Punto de reorden**: {int(monthly_data[-1]['sales'] * 0.4):,} unidades  
-        3. **📅 Próxima revisión**: En 2 semanas
-        4. **� Monitoreo**: Tendencias semanales por subcategoría
-        
-        ### 🤖 ¿Necesitas algo más específico?
-        
-        Puedo ayudarte con:
-        - 📊 **Predicción específica**: "Predice la demanda para el producto X"
-        - � **Comparar modelos**: "¿Qué modelo es más preciso?"
-        - 📈 **Análisis detallado**: "Analiza otra categoría"
-        
-        </div>
-        """
-        
-        # Guardar en contexto
-        analysis_data = {
-            'analysis_type': 'category_trends',
-            'category': category,
-            'insights': [
-                f"Crecimiento del {avg_growth:.1f}% en 6 meses",
-                f"Volumen total: {total_sales:,} unidades",
-                "Patrones estacionales detectados"
-            ]
-        }
-        self._save_tool_result('analysis', analysis_data, user_input)
-        
-        return response
-
-    def _generate_general_analysis(self, user_input: str) -> str:
-        """Generar análisis general cuando no se detecta categoría específica"""
-        
-        response = f"""
-        <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #9c27b0; color: #000000;">
-        
-        ## 🔍 Análisis General de Tendencias
-        
-        **Tu consulta:** "{user_input}"
-        
-        ### 📊 Insights Disponibles
-        
-        Para brindarte un análisis más específico, puedo ayudarte con:
-        
-        **Por Categoría:**
-        - 👕 Ropa y Fashion
-        - 💻 Electrónicos
-        - 🍕 Alimentos y Bebidas
-        - 🏠 Hogar y Decoración
-        - 💪 Deportes y Fitness
-        
-        **Por Producto:**
-        - 📊 Predicciones específicas
-        - 📈 Análisis de tendencias históricas
-        - 🔍 Comparación con competencia
-        
-        ### 💡 Recomendación
-        
-        <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
-        🎯 **Especifica una categoría** para obtener insights más detallados
-        </div>
-        
-        **Ejemplos de consultas más específicas:**
-        - "Analiza las tendencias de ropa"
-        - "¿Cómo está el mercado de electrónicos?"
-        - "Tendencias en comida rápida"
-        
-        </div>
-        """
-        
-        return response
-
-    def _extract_category_from_input(self, user_input: str) -> str:
-        """Extraer categoría del input del usuario"""
-        user_input_lower = user_input.lower()
-        
-        categories = {
-            'electrónicos': ['electronico', 'electronica', 'electronic', 'tecnologia'],
-            'ropa': ['ropa', 'vestimenta', 'clothing', 'textil'],
-            'alimentación': ['alimento', 'comida', 'food', 'bebida'],
-            'hogar': ['hogar', 'casa', 'home', 'domestico'],
-            'deportes': ['deporte', 'sport', 'fitness', 'ejercicio'],
-            'salud': ['salud', 'health', 'medicina', 'farmacia'],
-            'belleza': ['belleza', 'beauty', 'cosmetico', 'maquillaje']
-        }
-        
-        for category, keywords in categories.items():
-            if any(keyword in user_input_lower for keyword in keywords):
-                return category
-        
-        return None
-
-    def _generate_category_analysis(self, category: str, user_input: str) -> str:
-        """Generar análisis de tendencias para una categoría específica"""
-        import numpy as np
-        
-        # Generar datos simulados para la categoría
-        np.random.seed(hash(category) % 1000)
-        
-        # Simular tendencias de los últimos 6 meses
-        months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio']
-        base_sales = np.random.randint(1000, 5000)
-        
-        # Generar tendencia (creciente, decreciente o estable)
-        trend_type = np.random.choice(['creciente', 'decreciente', 'estable'])
-        
-        sales_data = []
-        for i in range(6):
-            if trend_type == 'creciente':
-                variation = 1 + (i * 0.1) + np.random.uniform(-0.05, 0.05)
-            elif trend_type == 'decreciente':
-                variation = 1 - (i * 0.08) + np.random.uniform(-0.05, 0.05)
-            else:  # estable
-                variation = 1 + np.random.uniform(-0.1, 0.1)
-            
-            sales_data.append(int(base_sales * variation))
-        
-        # Calcular estadísticas
-        avg_sales = np.mean(sales_data)
-        growth_rate = ((sales_data[-1] - sales_data[0]) / sales_data[0]) * 100
-        
-        trend_color = "#1b5e20" if growth_rate > 5 else "#d32f2f" if growth_rate < -5 else "#f57c00"
-        trend_bg = "#e8f5e8" if growth_rate > 5 else "#ffebee" if growth_rate < -5 else "#fff3e0"
-        
-        interpretation = f"""
-        <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0;">
-        
-        ## 📈 Análisis de Tendencias: {category.title()}
-        
-        **Consulta analizada:** "{user_input}"
-        
-        ### 📊 Resumen Ejecutivo
-        
-        <div style="background-color: {trend_bg}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {trend_color.replace('#', '').replace('1b5e20', '#4caf50').replace('d32f2f', '#f44336').replace('f57c00', '#ff9800')};">
-        <strong style="color: {trend_color};">Tendencia General: {trend_type.title()}</strong><br>
-        <strong style="color: #000000;">Crecimiento: {growth_rate:+.1f}%</strong><br>
-        <strong style="color: #000000;">Ventas Promedio: {avg_sales:,.0f} unidades/mes</strong>
-        </div>
-        
-        ### 📅 Datos Históricos (Últimos 6 Meses)
-        
-        """
-        
-        for i, (month, sales) in enumerate(zip(months, sales_data)):
-            change = ""
-            if i > 0:
-                change_pct = ((sales - sales_data[i-1]) / sales_data[i-1]) * 100
-                change_color = "#1b5e20" if change_pct > 0 else "#d32f2f"
-                change = f" <span style='color: {change_color}; font-weight: bold;'>({change_pct:+.1f}%)</span>"
-            
-            interpretation += f"- **{month}**: <span style='color: #000000; font-weight: bold;'>{sales:,} unidades</span>{change}\n"
-        
-        interpretation += f"""
-        
-        ### 🔍 Insights Clave
-        
-        """
-        
-        if trend_type == 'creciente':
-            interpretation += f"""
-        - 📈 **Crecimiento sostenido**: La categoría {category} muestra una tendencia positiva
-        - 🎯 **Oportunidad**: Considera aumentar inventario gradualmente
-        - 💡 **Estrategia**: Aprovecha el momentum con campañas de marketing
-        """
-        elif trend_type == 'decreciente':
-            interpretation += f"""
-        - 📉 **Declive observado**: La categoría {category} está perdiendo tracción
-        - ⚠️ **Alerta**: Revisa estrategias de precio y promoción
-        - 🔄 **Acción**: Considera diversificar o renovar productos
-        """
-        else:
-            interpretation += f"""
-        - 📊 **Estabilidad**: La categoría {category} mantiene ventas consistentes
-        - 🎯 **Oportunidad**: Mercado maduro ideal para optimización
-        - 💡 **Estrategia**: Enfócate en eficiencia y márgenes
-        """
-        
-        interpretation += f"""
-        
-        ### 💡 Recomendaciones Específicas
-        
-        <div style="background-color: #f3e5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9c27b0; color: #4a148c; font-weight: 600;">
-        🎯 **Próximos pasos:** Usa predicciones específicas por producto para planificar inventario
-        </div>
-        
-        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #2196f3; color: #0d47a1; font-weight: 600;">
-        📊 **Tip:** Pregunta "¿Cuál será la demanda del producto X en los próximos 30 días?" para análisis específico
-        </div>
-        
-        </div>
-        """
-        
-        return interpretation
-
-    def _handle_general_chat(self, user_input: str) -> str:
-        """Manejar chat general con Ollama"""
-        try:
-            # Si hay cliente Ollama disponible, usar IA para responder
-            if self.ollama_client:
-                # Crear contexto sobre las herramientas disponibles
-                system_context = """
-                Eres un asistente especializado en predicción de demanda y análisis de micronegocios.
-                
-                HERRAMIENTAS DISPONIBLES:
-                1. Predicción de demanda: Puedo predecir la demanda futura de productos específicos
-                2. Comparación de modelos: Puedo comparar diferentes modelos de ML para encontrar el más preciso
-                3. Análisis de tendencias: Puedo analizar patrones en los datos históricos
-                4. Reportes de inventario: Puedo generar reportes sobre estado del inventario
-                
-                IMPORTANTE: 
-                - Si el usuario pregunta sobre predicciones, demanda, ventas futuras o productos específicos, sugiere usar las herramientas de predicción
-                - Si pregunta sobre modelos o precisión, sugiere comparar modelos
-                - Para conversación general, responde de manera amigable y útil
-                - Siempre ofrece ayuda específica relacionada con el negocio
-                
-                Responde de manera conversacional y útil. Si detectas que necesitan usar alguna herramienta específica, guíalos hacia esa funcionalidad.
-                """
-                
-                # Usar asyncio para la llamada a Ollama
-                try:
-                    response = asyncio.run(self._get_ollama_response(user_input, system_context))
-                    return response
-                except Exception as e:
-                    logger.warning(f"Error con Ollama: {e}")
-                    return self._get_intelligent_fallback(user_input)
-            else:
-                return self._get_intelligent_fallback(user_input)
-                
-        except Exception as e:
-            return f"Disculpa, hubo un error procesando tu mensaje. ¿Podrías reformular tu pregunta?"
-
-    async def _get_ollama_response(self, user_input: str, system_context: str) -> str:
-        """Obtener respuesta de Ollama de manera asíncrona"""
-        try:
-            if not self.ollama_client:
-                return self._get_intelligent_fallback(user_input)
-            
-            # Preparar el contexto de conversación
-            conversation_context = self._build_conversation_context()
-            
-            # Crear el prompt completo
-            full_prompt = f"""
-            {system_context}
-            
-            CONTEXTO DE CONVERSACIÓN:
-            {conversation_context}
-            
-            USUARIO: {user_input}
-            
-            ASISTENTE: """
-            
-            # Llamar a Ollama con los parámetros correctos
-            response = await self.ollama_client.generate_response(
-                prompt=full_prompt,
-                session_id=self.session_id,
-                include_ml_context=True,
-                stream=False
-            )
-            
-            return response.strip()
-            
-        except Exception as e:
-            logger.error(f"Error en respuesta de Ollama: {e}")
-            return self._get_intelligent_fallback(user_input)
-
-    def _build_conversation_context(self) -> str:
-        """Construir contexto de conversación enriquecido para Mistral"""
-        if not st.session_state.messages:
-            return "Esta es una nueva conversación."
-        
-        # Tomar los últimos 5 mensajes para contexto más rico
-        recent_messages = st.session_state.messages[-5:] if len(st.session_state.messages) > 5 else st.session_state.messages
-        
-        context_parts = []
-        
-        # Construir contexto basado en mensajes
-        for msg in recent_messages:
-            role = "Usuario" if msg['role'] == 'user' else "Asistente"
-            content = msg['content']
-            
-            # Limitar longitud del contenido para contexto
-            content_summary = content[:200] + "..." if len(content) > 200 else content
-            context_parts.append(f"{role}: {content_summary}")
-        
-        context = "\n".join(context_parts)
-        
-        # Agregar información sobre resultados recientes de herramientas
-        tool_results = st.session_state.tool_results
-        
-        if (tool_results['recent_predictions'] or 
-            tool_results['recent_comparisons'] or 
-            tool_results['recent_analysis']):
-            
-            context += "\n\n=== RESULTADOS RECIENTES DE HERRAMIENTAS ==="
-            
-            # Predicciones recientes
-            if tool_results['recent_predictions']:
-                context += "\n\nPREDICCIONES REALIZADAS:"
-                for pred in tool_results['recent_predictions'][-2:]:  # Últimas 2
-                    context += f"\n- Producto {pred['producto_id']}: {pred['prediccion_promedio']:.1f} unidades, modelo {pred['modelo_usado']}, confianza {pred['confianza']:.1%}, tendencia {pred['tendencia']}"
-            
-            # Comparaciones recientes
-            if tool_results['recent_comparisons']:
-                context += "\n\nCOMPARACIONES DE MODELOS:"
-                for comp in tool_results['recent_comparisons'][-1:]:  # Última comparación
-                    context += f"\n- Modelo ganador: {comp['mejor_modelo']}"
-                    context += f"\n- Conclusión: {comp['conclusion']}"
-            
-            # Análisis recientes
-            if tool_results['recent_analysis']:
-                context += "\n\nANÁLISIS REALIZADOS:"
-                for analysis in tool_results['recent_analysis'][-1:]:
-                    context += f"\n- Tipo: {analysis['tipo_analisis']} para {analysis['categoria']}"
-            
-            # Información sobre la última acción
-            if tool_results['last_action']:
-                context += f"\n\nÚLTIMA ACCIÓN: {tool_results['last_action']}"
-        
-        return context
-
-    def _get_intelligent_fallback(self, user_input: str) -> str:
-        """Respuesta inteligente de fallback basada en análisis del input"""
-        user_input_lower = user_input.lower()
-        
-        # Saludos y conversación general
-        if any(word in user_input_lower for word in ['hola', 'buenos', 'buenas', 'hey', 'hi']):
-            return """¡Hola! 👋 Soy tu asistente especializado en análisis de demanda para micronegocios. 
-
-🚀 **¿En qué puedo ayudarte hoy?**
-
-**Mis especialidades:**
-- 📊 **Predicciones de demanda** para productos específicos
-- 🔍 **Comparación de modelos** para encontrar el más preciso  
-- 📈 **Análisis de tendencias** por categoría o producto
-- � **Recomendaciones** personalizadas para tu inventario
-
-**Ejemplos de lo que puedes preguntarme:**
-- *"¿Qué modelo es mejor para mis productos?"*
-- *"¿Qué se espera para la ropa?"*
-- *"Predice la demanda del producto 1"*
-
-¿Qué análisis necesitas?"""
-
-        # Preguntas sobre capacidades
-        elif any(word in user_input_lower for word in ['qué puedes', 'que haces', 'ayuda', 'help', 'capacidades']):
-            return """🤖 **Mis Capacidades:**
-
-**📊 Predicción de Demanda:**
-- Predigo ventas futuras de productos específicos
-- Uso múltiples modelos de ML para mayor precisión
-- Proporciono intervalos de confianza
-
-**🔍 Análisis Avanzado:**
-- Comparo diferentes modelos para encontrar el más preciso
-- Identifico tendencias y patrones estacionales
-- Genero insights accionables para tu negocio
-
-**💡 Ejemplos de lo que puedes preguntarme:**
-- "¿Cuál será la demanda del producto 1 en los próximos 30 días?"
-- "¿Qué modelo es más preciso para mis productos?"
-- "Analiza las tendencias de ventas del último mes"
-
-¿Qué te gustaría explorar?"""
-
-        # Agradecimientos
-        elif any(word in user_input_lower for word in ['gracias', 'thanks', 'thank you']):
-            return """¡De nada! 😊 
-
-Estoy aquí para ayudarte con el análisis de tu negocio. ¿Hay algo más en lo que pueda asistirte?
-
-Recuerda que puedo:
-- 📊 Generar predicciones de demanda
-- 🔍 Comparar modelos de ML
-- 📈 Analizar tendencias de ventas"""
-
-        # Respuesta por defecto más inteligente
-        else:
-            # Detectar si menciona productos o números
-            if any(word in user_input_lower for word in ['producto', 'item', 'artículo']) or any(char.isdigit() for char in user_input):
-                return """Parece que mencionas productos específicos. 
-
-Para ayudarte mejor, puedo:
-- 📊 **Predecir demanda** de un producto específico
-- 🔍 **Comparar modelos** para encontrar el más preciso
-- 📈 **Analizar tendencias** de categorías
-
-¿Podrías especificar qué tipo de análisis necesitas?
-
-**Ejemplo:** "Predice la demanda del producto 1 para los próximos 30 días" """
-
-            else:
-                return """No estoy seguro de cómo ayudarte con esa consulta específica, pero puedo asistirte con:
-
-🎯 **Análisis de Demanda:**
-- Predicciones para productos específicos
-- Comparación de modelos de ML
-- Análisis de tendencias y patrones
-
-💡 **Prueba preguntándome:**
-- "¿Qué modelo es más preciso?"
-- "Predice la demanda del producto X"
-- "Analiza las tendencias de ventas"
-
-¿En qué puedo ayudarte?"""
-
-    def render_chat_input(self):
-        """Renderizar input del chat"""
-       
-        try:
-            # Input del usuario
-            user_input = st.chat_input("Escribe tu consulta sobre predicción de demanda...")
-            
-            if user_input:
-                # Agregar mensaje del usuario
-                st.session_state.messages.append({
-                    "role": "user",
-                    "content": user_input,
-                    "timestamp": datetime.now()
-                })
-                
-                # Procesar mensaje y obtener respuesta
-                response = self._process_user_message(user_input)
-                
-                # Agregar respuesta del asistente
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": response,
-                    "timestamp": datetime.now()
-                })
-                
-                st.rerun()
-                
-        except Exception as e:
-            st.error(f"Error en chat input: {str(e)}")
-            logger.error(f"Error en render_chat_input(): {e}")
-
     def run(self):
-        """Ejecutar la aplicación principal"""
-        try:
-            self.render_sidebar()
-            
-            # Título principal
-            st.title("🤖 MicroAnalytics - Chat de Predicción")
-            st.markdown("*Análisis inteligente de demanda para micronegocios*")
-            
-            # Mostrar historial de chat
-            for message in st.session_state.messages:
-                self._render_message(message)
-            
-            # Input del usuario
-            self.render_chat_input()
-            
-        except Exception as e:
-            st.error(f"Error en la aplicación: {str(e)}")
-            logger.error(f"Error en run(): {e}")
+        """Ejecutar la aplicación integrada"""
+        # Renderizar la barra lateral del chat
+        self.render_sidebar()
+        
+        # Renderizar la interfaz del chat
+        self.render_chat_interface()
+        
+        # Mensaje inicial si no hay mensajes
+        if not st.session_state.chat_messages:
+            welcome_message = {
+                "role": "assistant",
+                "content": """¡Bienvenido al Asistente Inteligente de MicroAnalytics! 🤖
+
+Soy tu asistente especializado en análisis de negocio con IA. Puedo ayudarte con:
+
+🎯 **NUEVO: Selector Inteligente de Productos**
+• Escribe `predicción` para abrir el selector interactivo
+• Selecciona productos fácilmente y genera predicciones con un click
+
+📊 **Predicciones de Demanda Avanzadas**
+• "predecir producto 1" - Predicción específica
+• "comparar modelos para producto X" - Encuentra el mejor modelo ML
+• "demanda próximos 30 días" - Análisis temporal
+
+📦 **Gestión de Inventario Inteligente**
+• "inventario producto 1" - Stock específico
+• "inventario general" - Vista completa
+• "productos con stock bajo" - Alertas automáticas
+
+� **Análisis de Ventas y Negocio**
+• "ventas del mes" - Reporte automático
+• "cómo va mi negocio" - Análisis integral
+• "análisis de tendencias" - Insights avanzados
+
+🤖 **Machine Learning Integrado**
+• "comparar todos los modelos" - Evaluación de precisión
+• "qué modelo es mejor" - Recomendaciones automáticas
+
+**🚀 Para comenzar rápidamente:**
+1. 🎯 Escribe `predicción` para usar el selector
+2. 📦 Escribe `productos disponibles` para ver tu catálogo
+3. 💡 Escribe `ayuda` para ver todos los comandos
+
+**💡 Tip Avanzado:** Ahora entiendo mejor el lenguaje natural. Puedes preguntarme cosas como "¿qué producto debería reabastecer?" o "¿cuál será mi mejor vendedor?"
+
+¡Usa los botones de la barra lateral para acceso rápido!""",
+                "timestamp": datetime.now(),
+                "backend_used": self.check_backend_connection()
+            }
+            st.session_state.chat_messages.append(welcome_message)
+            st.rerun()
 
 
 def main():
-    """Función principal"""
+    """Función principal para usar el chatbot de forma independiente"""
     try:
-        # Configurar logging
-        logging.basicConfig(level=logging.INFO)
+        # Configurar página si se ejecuta de forma independiente
+        st.set_page_config(
+            page_title="MicroAnalytics Chatbot",
+            page_icon="🤖",
+            layout="wide",
+            initial_sidebar_state="expanded"
+        )
         
-        # Crear y ejecutar la aplicación
-        app = ChatbotFrontend()
-        app.run()
-        
+        chatbot = ChatbotFrontend()
+        chatbot.run()
     except Exception as e:
-        st.error(f"Error crítico: {str(e)}")
-        logger.error(f"Error crítico en main(): {e}")
+        st.error(f"Error en el chatbot: {str(e)}")
+        st.info("Intenta recargar la página.")
 
 
 if __name__ == "__main__":

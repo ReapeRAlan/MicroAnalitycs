@@ -14,7 +14,8 @@ from backend.crud.supplier_price_crud import (
     get_supplier_prices,
     create_supplier_price,
     update_supplier_price,
-    delete_supplier_price
+    delete_supplier_price,
+    get_all_supplier_prices_with_relations
 )
 from backend.base import get_db
 
@@ -92,3 +93,23 @@ def delete_price(price_id: int, db: Session = Depends(get_db)):
     if not deleted_price:
         raise HTTPException(status_code=404, detail="Supplier price not found")
     return deleted_price
+
+# Ruta GET para listar precios de proveedores con relaciones
+@router.get("/with-relations/", 
+           response_model=List[SupplierPriceWithRelations],
+           summary="Listar precios con relaciones",
+           description="Obtiene una lista paginada de precios de proveedores incluyendo información de producto y proveedor")
+def read_prices_with_relations(
+    skip: int = 0,
+    limit: int = 10000,
+    product_id: Optional[int] = Query(None, description="Filtrar por ID de producto"),
+    supplier_id: Optional[int] = Query(None, description="Filtrar por ID de proveedor"),
+    db: Session = Depends(get_db)
+):
+    return get_all_supplier_prices_with_relations(
+        db,
+        skip=skip,
+        limit=limit,
+        product_id=product_id,
+        supplier_id=supplier_id
+    )
