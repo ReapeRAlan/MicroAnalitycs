@@ -5,26 +5,11 @@ import plotly.express as px
 import time
 import json
 from datetime import datetime
+from api_utils import get_products, get_categories  # Importar desde api_utils
+from inventory import create_inventory  # Mantener esta importación, ahora segura
 
-# URL base de la API
+# URL base de la API (opcional, ya en api_utils)
 API_BASE_URL = "http://localhost:8000/api"
-
-# Funciones para productos
-def get_products(skip=0, limit=1000, force_refresh=False):
-    try:
-        timestamp = datetime.now().timestamp()
-        response = requests.get(f"{API_BASE_URL}/products/?skip={skip}&limit={limit}&t={timestamp}")
-        response.raise_for_status()
-        products = response.json()
-        print(f"Productos obtenidos de la API (force_refresh={force_refresh}, skip={skip}, limit={limit}, raw response: {json.dumps(products, indent=2)})")
-        if st.session_state.business_id:
-            filtered_products = [p for p in products if p.get("business_id") == st.session_state.business_id]
-            print(f"Productos filtrados por business_id {st.session_state.business_id}: {json.dumps(filtered_products, indent=2)}")
-            return filtered_products
-        return products
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error al obtener productos: {str(e)}")
-        return []
 
 def get_product(product_id):
     try:
@@ -34,15 +19,6 @@ def get_product(product_id):
     except requests.exceptions.RequestException as e:
         st.error(f"Error al obtener producto: {str(e)}")
         return None
-
-def get_categories():
-    try:
-        response = requests.get(f"{API_BASE_URL}/categories/")
-        response.raise_for_status()
-        return {cat["id"]: cat["nombre"] for cat in response.json()}
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error al obtener categorías: {str(e)}")
-        return {}
 
 def create_product(nombre, descripcion, precio_base, category_id, business_id):
     try:
@@ -57,6 +33,12 @@ def create_product(nombre, descripcion, precio_base, category_id, business_id):
         new_product = response.json()
         print(f"Respuesta de creación de producto (raw): {json.dumps(new_product, indent=2)}")
         print(f"Status Code: {response.status_code}")
+        
+        # Crear un registro de inventario para el nuevo producto
+        if create_inventory(new_product["id"], 0):  # Inicializar stock en 0
+            st.success(f"Producto creado exitosamente: {nombre} y inventario inicializado.")
+        else:
+            st.warning(f"Producto creado: {nombre}, pero no se pudo inicializar el inventario.")
         return new_product
     except requests.exceptions.RequestException as e:
         st.error(f"Error al crear producto: {str(e)}")

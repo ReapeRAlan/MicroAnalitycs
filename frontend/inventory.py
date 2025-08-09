@@ -2,6 +2,7 @@
 import requests
 import pandas as pd
 from datetime import datetime
+from api_utils import get_products  # Importar desde api_utils
 
 # URL base de la API
 API_URL = "http://localhost:8000/api/inventory"
@@ -89,11 +90,17 @@ def show_inventory():
     with tab2:
         st.header("Crear Inventario de Producto")
         with st.form("form_create_inventory"):
-            product_id = st.number_input("ID del Producto", min_value=1, step=1)
-            stock_actual = st.number_input("Stock Actual", min_value=0, step=1)
-            if st.form_submit_button("Crear"):
-                if create_inventory(product_id, stock_actual):
-                    st.rerun()
+            productos = get_products()  # Obtener todos los productos
+            if productos:
+                producto_id = st.selectbox("Seleccionar Producto", 
+                                         [(p["id"], p["nombre"]) for p in productos], 
+                                         format_func=lambda x: x[1])
+                stock_actual = st.number_input("Stock Actual", min_value=0, step=1)
+                if st.form_submit_button("Crear"):
+                    if create_inventory(producto_id[0], stock_actual):
+                        st.rerun()
+            else:
+                st.warning("No hay productos disponibles para crear inventario.")
 
     with tab3:
         st.header("Actualizar Inventario de Producto")

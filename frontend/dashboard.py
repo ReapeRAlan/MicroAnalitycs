@@ -1,8 +1,8 @@
 ﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
-from products import get_products  # Importar funciones existentes de products.py
-#Me falta importar ventas (aun no hay ruta)
+from api_utils import get_products
+from sales import get_sales
 
 def show_dashboard():
     st.title(f"Dashboard - Negocio {st.session_state.business_id}")
@@ -18,7 +18,8 @@ def show_dashboard():
         st.info("No hay productos disponibles.")
 
     st.header("📈 Ventas Recientes")
-    ventas = []
+    ventas = get_sales()
+    st.write(ventas)  # Depuración: muestra las ventas crudas
     if ventas:
         df_ventas = pd.DataFrame(ventas)
         st.dataframe(df_ventas, use_container_width=True)
