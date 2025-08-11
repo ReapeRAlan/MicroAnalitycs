@@ -19,9 +19,15 @@ def show_dashboard():
 
     st.header("📈 Ventas Recientes")
     ventas = get_sales()
-    st.write(ventas)  # Depuración: muestra las ventas crudas
     if ventas:
         df_ventas = pd.DataFrame(ventas)
+        st.subheader("Listado de Ventas")
         st.dataframe(df_ventas, use_container_width=True)
+        st.subheader("Gráfico de Ventas por Producto")
+        df_ventas["Total_Value"] = df_ventas["Total"].apply(lambda x: float(x.replace("$", "")))
+        fig_ventas = px.bar(df_ventas, x="Producto", y="Total_Value", title="Total de Ventas por Producto",
+                            color="Total_Value", color_continuous_scale="Viridis",
+                            labels={"Total_Value": "Total ($)", "Producto": "Producto"})
+        st.plotly_chart(fig_ventas, use_container_width=True)
     else:
         st.info("No hay ventas disponibles.")

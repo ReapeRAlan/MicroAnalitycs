@@ -1,14 +1,11 @@
 ﻿import streamlit as st
 import requests
 import pandas as pd
-import time
-import json
 from datetime import datetime
 
 # URL base de la API
 API_BASE_URL = "http://localhost:8000/api"
 
-# Funciones para negocios
 def get_businesses(skip=0, limit=100):
     try:
         response = requests.get(f"{API_BASE_URL}/business/", params={"skip": skip, "limit": limit})
@@ -54,7 +51,6 @@ def delete_business(business_id):
         st.error(f"Error al eliminar negocio: {str(e)}")
         return None
 
-# Pantalla de Selección de Negocio
 def show_select_business():
     st.title("Gestión de Negocios")
     tab1, tab2, tab3, tab4 = st.tabs(["📋 Seleccionar", "🛍️ Crear", "✏️ Actualizar", "🗑️ Eliminar"])
@@ -63,16 +59,19 @@ def show_select_business():
         st.header("Seleccionar Negocio")
         negocios = get_businesses()
         if negocios:
-            for n in negocios:
-                cols = st.columns([3, 3, 1])
-                cols[0].write(n["nombre"])
-                cols[1].write(n["descripcion"])
-                if cols[2].button("Seleccionar", key=f"select_{n['id']}"):
-                    st.session_state.business_id = n["id"]
-                    st.session_state.page = "main"
-                    st.rerun()
+            for index, row in pd.DataFrame(negocios).iterrows():
+                col1, col2, col3 = st.columns([2, 4, 1])
+                with col1:
+                    st.write(row["nombre"])
+                with col2:
+                    st.write(row["descripcion"])
+                with col3:
+                    if st.button("Seleccionar", key=f"select_{row['id']}"):
+                        st.session_state.business_id = row['id']
+                        st.session_state.page = "main"
+                        st.rerun()
         else:
-            st.warning("No hay negocios disponibles.")
+            st.warning("No hay negocios disponibles. Crea uno primero.")
     
     with tab2:
         st.header("Crear Negocio")
@@ -83,7 +82,7 @@ def show_select_business():
                 if nombre:
                     new_business = create_business(nombre, descripcion)
                     if new_business:
-                        st.success(f"Negocio creado exitosamente: {nombre}")
+                        st.success(f"Negocio creado: {nombre}")
                         st.rerun()
                     else:
                         st.error("Error al crear el negocio.")
@@ -94,22 +93,17 @@ def show_select_business():
         st.header("Actualizar Negocio")
         negocios = get_businesses()
         if negocios:
-            negocio_id = st.selectbox(
-                "Seleccionar negocio",
-                [(n["id"], n["nombre"]) for n in negocios],
-                format_func=lambda x: x[1],
-                key="update_business_select"
-            )
-            selected_negocio = get_business(negocio_id[0]) if negocio_id else None
+            negocio_id = st.selectbox("Seleccionar negocio", [n["id"] for n in negocios], key="update_business_select")
+            selected_negocio = get_business(negocio_id) if negocio_id else None
             if selected_negocio:
                 with st.form("form_actualizar_negocio"):
                     nombre_update = st.text_input("Nuevo nombre", value=selected_negocio["nombre"])
                     descripcion_update = st.text_area("Nueva descripción", value=selected_negocio["descripcion"])
                     if st.form_submit_button("Actualizar"):
                         if nombre_update:
-                            updated_business = update_business(negocio_id[0], nombre_update, descripcion_update)
+                            updated_business = update_business(negocio_id, nombre_update, descripcion_update)
                             if updated_business:
-                                st.success(f"Negocio actualizado exitosamente: {nombre_update}")
+                                st.success(f"Negocio actualizado: {nombre_update}")
                                 st.rerun()
                             else:
                                 st.error("Error al actualizar el negocio.")
@@ -125,17 +119,12 @@ def show_select_business():
         negocios = get_businesses()
         if negocios:
             with st.form("form_eliminar_negocio"):
-                negocio_id_delete = st.selectbox(
-                    "Seleccionar negocio para eliminar",
-                    [(n["id"], n["nombre"]) for n in negocios],
-                    format_func=lambda x: x[1],
-                    key="delete_business_select"
-                )
+                negocio_id_delete = st.selectbox("Seleccionar negocio para eliminar", [n["id"] for n in negocios], key="delete_business_select")
                 st.warning("Esta acción no se puede deshacer.")
                 if st.form_submit_button("Eliminar"):
-                    deleted_business = delete_business(negocio_id_delete[0])
+                    deleted_business = delete_business(negocio_id_delete)
                     if deleted_business:
-                        st.success(f"Negocio eliminado exitosamente: {negocio_id_delete[1]}")
+                        st.success("Negocio eliminado")
                         st.rerun()
                     else:
                         st.error("Error al eliminar el negocio.")
